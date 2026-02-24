@@ -1,0 +1,20 @@
+# Compiled UI assets (built via 'make ui' or CI)
+internal/ui_dist/*
+!internal/ui_dist/index.html
+
+# Build output
+bin/
+dist/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Node (UI build artifacts)
+node_modules/
+
+# OS
+.DS_Store
