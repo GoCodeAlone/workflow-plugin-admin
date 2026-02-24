@@ -22,6 +22,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build admin UI
+        run: |
+          git clone --depth 1 https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/GoCodeAlone/workflow.git /tmp/workflow-ui-build
+          cd /tmp/workflow-ui-build/ui && npm ci && npx vite build
+          rm -rf internal/ui_dist && cp -r /tmp/workflow-ui-build/ui/dist internal/ui_dist
+          rm -rf /tmp/workflow-ui-build
+
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26'
