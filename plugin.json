@@ -10,10 +10,5 @@
     "keywords": ["admin", "dashboard", "ui", "management", "iam", "auth"],
     "homepage": "https://github.com/GoCodeAlone/workflow-plugin-admin",
     "repository": "https://github.com/GoCodeAlone/workflow-plugin-admin",
-    "capabilities": {
-        "configProvider": true,
-        "moduleTypes": [],
-        "stepTypes": [],
-        "triggerTypes": []
-    }
+    "capabilities": []
 }
