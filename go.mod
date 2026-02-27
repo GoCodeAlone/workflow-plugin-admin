@@ -3,7 +3,7 @@ module github.com/GoCodeAlone/workflow-plugin-admin
 go 1.26
 
 require (
-	github.com/GoCodeAlone/workflow v0.2.21
+	github.com/GoCodeAlone/workflow v0.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -116,7 +116,7 @@ require (
 	github.com/jcmturner/gofork v1.7.6 // indirect
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/json-iterator/go v1.1.13-0.20220915233716-71ac16282d12 // indirect
 	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
