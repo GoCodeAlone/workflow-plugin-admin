@@ -1,0 +1,56 @@
+name: Sync Editor on Editor Release
+
+on:
+  repository_dispatch:
+    types: [editor-release]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Rebuild admin UI with updated editor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@gocodealone'
+
+      - name: Clone workflow repo and update editor package
+        run: |
+          EDITOR_VERSION="${{ github.event.client_payload.version }}"
+          git clone --depth 1 https://github.com/GoCodeAlone/workflow.git /tmp/workflow-ui-build
+          cd /tmp/workflow-ui-build/ui
+          npm install "@gocodealone/workflow-editor@${EDITOR_VERSION#v}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build admin UI
+        run: |
+          cd /tmp/workflow-ui-build/ui
+          npm ci
+          npx vite build
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy dist to repo
+        run: |
+          rm -rf internal/ui_dist
+          cp -r /tmp/workflow-ui-build/ui/dist internal/ui_dist
+          rm -rf /tmp/workflow-ui-build
+
+      - name: Commit and tag
+        run: |
+          EDITOR_VERSION="${{ github.event.client_payload.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore: sync editor to ${EDITOR_VERSION}"
+          git push
+          git tag "${EDITOR_VERSION}"
+          git push origin "${EDITOR_VERSION}"
