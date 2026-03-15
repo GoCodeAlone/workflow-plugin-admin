@@ -41,45 +41,75 @@ jobs:
       - name: Configure git for private modules
         run: git config --global url."https://${{ secrets.RELEASES_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
-      - name: Resolve dependencies
-        run: go mod tidy
-
-      - name: Build binaries
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-
-          declare -a PLATFORMS=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64")
-          mkdir -p bin
-
-          for platform in "${PLATFORMS[@]}"; do
-            os="${platform%%/*}"
-            arch="${platform##*/}"
-            output="bin/workflow-plugin-admin-${os}-${arch}"
-            echo "Building ${output}..."
-            GOOS=${os} GOARCH=${arch} go build -ldflags "-X main.version=${VERSION}" \
-              -o "${output}" ./cmd/workflow-plugin-admin
-          done
-
-          ls -la bin/
-
-      - name: Create release archives
-        run: |
-          mkdir -p dist
-          for binary in bin/workflow-plugin-admin-*; do
-            name=$(basename "${binary}")
-            tar -czf "dist/${name}.tar.gz" -C bin "${name}"
-            sha256sum "dist/${name}.tar.gz" >> dist/checksums.txt
-          done
-          cp plugin.json dist/
-          ls -la dist/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - uses: goreleaser/goreleaser-action@v6
         with:
-          files: |
-            dist/*.tar.gz
-            dist/checksums.txt
-            dist/plugin.json
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GOPRIVATE: github.com/GoCodeAlone/*
+
+      - name: Update registry manifest
+        if: success()
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PLUGIN_NAME="${GITHUB_REPOSITORY##*/}"
+          REGISTRY_NAME="${PLUGIN_NAME#workflow-plugin-}"
+          REGISTRY_NAME="${REGISTRY_NAME#workflow-}"
+          BASE_URL="https://github.com/GoCodeAlone/${PLUGIN_NAME}/releases/download/v${VERSION}/${PLUGIN_NAME}"
+
+          git clone "https://x-access-token:${REGISTRY_PAT}@github.com/GoCodeAlone/workflow-registry.git" /tmp/workflow-registry
+          cd /tmp/workflow-registry
+
+          MANIFEST="plugins/${REGISTRY_NAME}/manifest.json"
+          if [[ ! -f "${MANIFEST}" ]]; then
+            echo "No manifest found at ${MANIFEST}, skipping registry update."
+            exit 0
+          fi
+
+          jq --arg v "${VERSION}" \
+             --arg base "${BASE_URL}" \
+             '.version = $v |
+              .downloads = [
+                {os: "linux",  arch: "amd64", url: ($base + "-linux-amd64.tar.gz")},
+                {os: "linux",  arch: "arm64", url: ($base + "-linux-arm64.tar.gz")},
+                {os: "darwin", arch: "amd64", url: ($base + "-darwin-amd64.tar.gz")},
+                {os: "darwin", arch: "arm64", url: ($base + "-darwin-arm64.tar.gz")}
+              ]' "${MANIFEST}" > tmp.json && mv tmp.json "${MANIFEST}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="auto/sync-${PLUGIN_NAME}-v${VERSION}"
+          git checkout -b "${BRANCH}"
+          git add "plugins/${REGISTRY_NAME}/manifest.json"
+          git commit -m "sync: ${PLUGIN_NAME} v${VERSION}"
+          git push "https://x-access-token:${REGISTRY_PAT}@github.com/GoCodeAlone/workflow-registry.git" "${BRANCH}"
+
+          gh pr create \
+            --repo GoCodeAlone/workflow-registry \
+            --head "${BRANCH}" \
+            --base main \
+            --title "sync: ${PLUGIN_NAME} v${VERSION}" \
+            --body "Auto-sync \`${PLUGIN_NAME}\` manifest to v${VERSION}" \
+            --label "auto-sync" || true
+        env:
+          REGISTRY_PAT: ${{ secrets.REGISTRY_PAT }}
+          GH_TOKEN: ${{ secrets.REGISTRY_PAT }}
+
+  notify-registry:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify workflow-registry
+        if: env.GH_TOKEN != ''
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.REGISTRY_PAT }}
+          repository: GoCodeAlone/workflow-registry
+          event-type: plugin-release
+          client-payload: >-
+            {"plugin": "${{ github.repository }}", "tag": "${{ github.ref_name }}"}
+        env:
+          GH_TOKEN: ${{ secrets.REGISTRY_PAT }}
+        continue-on-error: true
