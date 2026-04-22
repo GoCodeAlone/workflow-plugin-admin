@@ -1,4 +1,10 @@
 version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - "sed -i.bak 's/\"version\": \".*\"/\"version\": \"{{ .Version }}\"/' plugin.json && rm -f plugin.json.bak"
+
 builds:
   - id: workflow-plugin-admin
     main: ./cmd/workflow-plugin-admin
