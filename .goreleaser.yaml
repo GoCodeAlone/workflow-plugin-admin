@@ -1,0 +1,31 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - "sed -i.bak 's/\"version\": \".*\"/\"version\": \"{{ .Version }}\"/' plugin.json && rm -f plugin.json.bak"
+
+builds:
+  - id: workflow-plugin-admin
+    main: ./cmd/workflow-plugin-admin
+    binary: workflow-plugin-admin
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - plugin.json
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc

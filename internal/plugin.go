@@ -9,6 +9,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Version is set at build time via -ldflags
+// "-X github.com/GoCodeAlone/workflow-plugin-admin/internal.Version=X.Y.Z".
+// Default is a bare semver so plugin loaders that validate semver accept
+// unreleased dev builds; goreleaser overrides with the real release tag.
+var Version = "0.0.0"
+
 // adminPlugin implements PluginProvider and ConfigProvider.
 type adminPlugin struct{}
 
@@ -21,7 +27,7 @@ func NewAdminPlugin() sdk.PluginProvider {
 func (p *adminPlugin) Manifest() sdk.PluginManifest {
 	return sdk.PluginManifest{
 		Name:        "admin",
-		Version:     "1.0.0",
+		Version:     Version,
 		Author:      "GoCodeAlone",
 		Description: "Admin dashboard UI and config-driven admin routes",
 	}

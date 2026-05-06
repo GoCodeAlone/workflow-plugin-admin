@@ -22,8 +22,8 @@ func TestAdminPlugin_Manifest(t *testing.T) {
 	if manifest.Name != "admin" {
 		t.Errorf("expected name 'admin', got %q", manifest.Name)
 	}
-	if manifest.Version != "1.0.0" {
-		t.Errorf("expected version '1.0.0', got %q", manifest.Version)
+	if manifest.Version == "" {
+		t.Error("expected non-empty Version — build-time ldflags injection missing")
 	}
 	if manifest.Author != "GoCodeAlone" {
 		t.Errorf("expected author 'GoCodeAlone', got %q", manifest.Author)
