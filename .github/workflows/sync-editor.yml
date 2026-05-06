@@ -1,0 +1,68 @@
+name: Sync Editor on Editor Release
+
+on:
+  repository_dispatch:
+    types: [editor-release]
+
+concurrency:
+  group: sync-editor
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  sync:
+    name: Rebuild admin UI with updated editor
+    runs-on: ubuntu-latest
+    env:
+      EDITOR_VERSION: ${{ github.event.client_payload.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@gocodealone'
+
+      - name: Validate editor version
+        run: |
+          if ! echo "$EDITOR_VERSION" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'; then
+            echo "Invalid version format: $EDITOR_VERSION"
+            exit 1
+          fi
+
+      - name: Clone workflow repo and update editor package
+        run: |
+          git clone --depth 1 https://github.com/GoCodeAlone/workflow.git /tmp/workflow-ui-build
+          cd /tmp/workflow-ui-build/ui
+          npm install --ignore-scripts "@gocodealone/workflow-editor@${EDITOR_VERSION#v}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build admin UI
+        run: |
+          cd /tmp/workflow-ui-build/ui
+          npx vite build
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copy dist to repo
+        run: |
+          rm -rf internal/ui_dist
+          cp -r /tmp/workflow-ui-build/ui/dist internal/ui_dist
+          rm -rf /tmp/workflow-ui-build
+
+      - name: Commit and tag
+        run: |
+          TAG_NAME="editor-${EDITOR_VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore: sync editor to ${EDITOR_VERSION}"
+          git push
+          git tag -- "${TAG_NAME}"
+          git push origin -- "${TAG_NAME}"
