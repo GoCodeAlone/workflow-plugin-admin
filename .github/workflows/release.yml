@@ -35,7 +35,12 @@ jobs:
           # (fetch of @gocodealone/workflow-ui from npm.pkg.github.com).
           # Captured failure in workflow-plugin-admin#13 v1.0.1 release run.
           echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > /tmp/workflow-ui-build/ui/.npmrc
-          cd /tmp/workflow-ui-build/ui && npm ci && npx vite build
+          # Subshell isolates `cd` so the cp below runs from the repo workspace,
+          # not /tmp/workflow-ui-build/ui. v1.0.2 release run surfaced this:
+          # cd persisted across bash lines → cp tried to write
+          # /tmp/workflow-ui-build/ui/internal/ui_dist (no such dir) instead of
+          # ${GITHUB_WORKSPACE}/internal/ui_dist.
+          ( cd /tmp/workflow-ui-build/ui && npm ci && npx vite build )
           rm -rf internal/ui_dist && cp -r /tmp/workflow-ui-build/ui/dist internal/ui_dist
           rm -rf /tmp/workflow-ui-build
 
