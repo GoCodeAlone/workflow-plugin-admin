@@ -70,6 +70,11 @@ jobs:
 
       - name: Update registry manifest
         if: success()
+        # Non-blocking: REGISTRY_PAT may be unset; matches workflow-plugin-azure
+        # release.yml precedent. Registry sync is informational; the release
+        # itself was already published before this step runs. v1.0.4 + v1.1.2
+        # release runs were marked failure solely on this step (PAT empty).
+        continue-on-error: true
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           PLUGIN_NAME="${GITHUB_REPOSITORY##*/}"
