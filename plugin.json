@@ -1,26 +1,26 @@
 {
-    "name": "admin",
-    "version": "1.1.1",
-    "author": "GoCodeAlone",
-    "description": "Admin dashboard UI and config-driven admin routes",
-    "type": "external",
-    "tier": "core",
-    "license": "MIT",
-    "minEngineVersion": "0.53.0",
-    "keywords": [
-        "admin",
-        "dashboard",
-        "ui",
-        "management",
-        "iam",
-        "auth"
-    ],
-    "homepage": "https://github.com/GoCodeAlone/workflow-plugin-admin",
-    "repository": "https://github.com/GoCodeAlone/workflow-plugin-admin",
-    "capabilities": {
-        "configProvider": true,
-        "moduleTypes": [],
-        "stepTypes": [],
-        "triggerTypes": []
-    }
+  "name": "admin",
+  "version": "1.0.3",
+  "author": "GoCodeAlone",
+  "description": "Admin dashboard UI and config-driven admin routes",
+  "type": "external",
+  "tier": "core",
+  "license": "MIT",
+  "minEngineVersion": "0.53.0",
+  "keywords": [
+    "admin",
+    "dashboard",
+    "ui",
+    "management",
+    "iam",
+    "auth"
+  ],
+  "homepage": "https://github.com/GoCodeAlone/workflow-plugin-admin",
+  "repository": "https://github.com/GoCodeAlone/workflow-plugin-admin",
+  "capabilities": {
+    "configProvider": true,
+    "moduleTypes": [],
+    "stepTypes": [],
+    "triggerTypes": []
+  }
 }
