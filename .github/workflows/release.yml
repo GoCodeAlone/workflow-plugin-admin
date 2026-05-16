@@ -27,8 +27,14 @@ jobs:
           node-version: '22'
 
       - name: Build admin UI
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           git clone --depth 1 https://github.com/GoCodeAlone/workflow.git /tmp/workflow-ui-build
+          # Write .npmrc so npm ci can authenticate to GitHub Packages
+          # (fetch of @gocodealone/workflow-ui from npm.pkg.github.com).
+          # Captured failure in workflow-plugin-admin#13 v1.0.1 release run.
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > /tmp/workflow-ui-build/ui/.npmrc
           cd /tmp/workflow-ui-build/ui && npm ci && npx vite build
           rm -rf internal/ui_dist && cp -r /tmp/workflow-ui-build/ui/dist internal/ui_dist
           rm -rf /tmp/workflow-ui-build
