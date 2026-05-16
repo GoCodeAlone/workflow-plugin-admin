@@ -55,7 +55,15 @@ jobs:
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: '~> v2'
-          args: release --clean
+          # --skip=validate bypasses goreleaser's git-dirty-state check.
+          # The Build admin UI step rebuilds internal/ui_dist/ from workflow
+          # repo HEAD, which may differ from this repo's committed snapshot
+          # (kept in-tree for go:embed at dev time). Per workflow-plugin-admin
+          # #13 v1.0.3 release run failure, dirty check fired on
+          # internal/ui_dist/index.html. The fresh build is the intended
+          # release artifact; skip-validate accepts that ui_dist drift is
+          # expected at release time.
+          args: release --clean --skip=validate
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           GOPRIVATE: github.com/GoCodeAlone/*
