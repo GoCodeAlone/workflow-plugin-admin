@@ -1,0 +1,5 @@
+# Placeholder minimal config for workflow-plugin-admin.
+# This plugin's registry manifest does not declare any module/step types yet.
+# See https://github.com/GoCodeAlone/workflow-plugin-admin for the full feature surface.
+
+version: 1
