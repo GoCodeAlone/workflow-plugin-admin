@@ -3,7 +3,7 @@ module github.com/GoCodeAlone/workflow-plugin-admin
 go 1.26.0
 
 require (
-	github.com/GoCodeAlone/workflow v0.62.0
+	github.com/GoCodeAlone/workflow v0.64.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
