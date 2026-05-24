@@ -11,6 +11,8 @@ builds:
     binary: workflow-plugin-admin
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - "-s -w -X github.com/GoCodeAlone/workflow-plugin-admin/internal.Version={{.Version}}"
     goos:
       - linux
       - darwin
