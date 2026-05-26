@@ -10,6 +10,7 @@ import (
 	sdk "github.com/GoCodeAlone/workflow/plugin/external/sdk"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/structpb"
 	"gopkg.in/yaml.v3"
 )
@@ -83,6 +84,34 @@ func (p *adminPlugin) ConfigFragment() ([]byte, error) {
 	return yaml.Marshal(cfg)
 }
 
+func (p *adminPlugin) ModuleTypes() []string {
+	return []string{"admin.dashboard"}
+}
+
+func (p *adminPlugin) TypedModuleTypes() []string {
+	return p.ModuleTypes()
+}
+
+func (p *adminPlugin) CreateModule(typeName, name string, config map[string]any) (sdk.ModuleInstance, error) {
+	if typeName != "admin.dashboard" {
+		return nil, fmt.Errorf("admin plugin: unknown module type %q", typeName)
+	}
+	return newDashboardModule(name, dashboardConfigFromMap(config)), nil
+}
+
+func (p *adminPlugin) CreateTypedModule(typeName, name string, config *anypb.Any) (sdk.ModuleInstance, error) {
+	if typeName != "admin.dashboard" {
+		return nil, fmt.Errorf("admin plugin: unknown typed module type %q", typeName)
+	}
+	cfg := &contracts.AdminDashboardConfig{}
+	if config != nil {
+		if err := config.UnmarshalTo(cfg); err != nil {
+			return nil, fmt.Errorf("admin dashboard config: %w", err)
+		}
+	}
+	return newDashboardModule(name, cfg), nil
+}
+
 // ContractRegistry returns the admin plugin's strict protobuf contracts.
 func (p *adminPlugin) ContractRegistry() *pb.ContractRegistry {
 	return &pb.ContractRegistry{
@@ -119,5 +148,17 @@ func adminStepContract(stepType, configMessage, inputMessage, outputMessage stri
 		InputMessage:  pkg + inputMessage,
 		OutputMessage: pkg + outputMessage,
 		Mode:          pb.ContractMode_CONTRACT_MODE_STRICT_PROTO,
+	}
+}
+
+func dashboardConfigFromMap(config map[string]any) *contracts.AdminDashboardConfig {
+	return &contracts.AdminDashboardConfig{
+		RoutePrefix: stringValue(config, "route_prefix"),
+		AppName:     stringValue(config, "app_name"),
+		TargetApp:   stringValue(config, "target_app"),
+		AuthModule:  stringValue(config, "auth_module"),
+		AuthzModule: stringValue(config, "authz_module"),
+		Mode:        stringValue(config, "mode"),
+		AssetRoot:   stringValue(config, "asset_root"),
 	}
 }
