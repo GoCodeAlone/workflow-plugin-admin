@@ -3,14 +3,39 @@ package internal
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/GoCodeAlone/workflow-plugin-admin/internal/contracts"
 )
+
+var dashboardModules = struct {
+	sync.RWMutex
+	byName map[string]*dashboardModule
+}{byName: make(map[string]*dashboardModule)}
 
 type dashboardModule struct {
 	name     string
 	config   *contracts.AdminDashboardConfig
 	registry *contributionRegistry
+}
+
+func registerDashboardModule(module *dashboardModule) {
+	dashboardModules.Lock()
+	defer dashboardModules.Unlock()
+	dashboardModules.byName[module.name] = module
+}
+
+func lookupDashboardModule(name string) (*dashboardModule, error) {
+	if name == "" {
+		name = "admin"
+	}
+	dashboardModules.RLock()
+	defer dashboardModules.RUnlock()
+	module, ok := dashboardModules.byName[name]
+	if !ok {
+		return nil, fmt.Errorf("admin dashboard module %q not found", name)
+	}
+	return module, nil
 }
 
 func newDashboardModule(name string, config *contracts.AdminDashboardConfig) *dashboardModule {

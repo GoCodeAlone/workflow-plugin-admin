@@ -96,7 +96,9 @@ func (p *adminPlugin) CreateModule(typeName, name string, config map[string]any)
 	if typeName != "admin.dashboard" {
 		return nil, fmt.Errorf("admin plugin: unknown module type %q", typeName)
 	}
-	return newDashboardModule(name, dashboardConfigFromMap(config)), nil
+	module := newDashboardModule(name, dashboardConfigFromMap(config))
+	registerDashboardModule(module)
+	return module, nil
 }
 
 func (p *adminPlugin) CreateTypedModule(typeName, name string, config *anypb.Any) (sdk.ModuleInstance, error) {
@@ -109,7 +111,47 @@ func (p *adminPlugin) CreateTypedModule(typeName, name string, config *anypb.Any
 			return nil, fmt.Errorf("admin dashboard config: %w", err)
 		}
 	}
-	return newDashboardModule(name, cfg), nil
+	module := newDashboardModule(name, cfg)
+	registerDashboardModule(module)
+	return module, nil
+}
+
+func (p *adminPlugin) StepTypes() []string {
+	return append([]string(nil), adminStepTypes...)
+}
+
+func (p *adminPlugin) TypedStepTypes() []string {
+	return p.StepTypes()
+}
+
+func (p *adminPlugin) CreateStep(typeName, _ string, config map[string]any) (sdk.StepInstance, error) {
+	switch typeName {
+	case "step.admin_register_contribution":
+		return newAdminStep("RegisterContribution", config), nil
+	case "step.admin_list_contributions":
+		return newAdminStep("ListContributions", config), nil
+	case "step.admin_authorize_action":
+		return newAdminStep("AuthorizeAction", config), nil
+	case "step.admin_resource_action":
+		return newAdminStep("DispatchResourceAction", config), nil
+	default:
+		return nil, fmt.Errorf("admin plugin: unknown step type %q", typeName)
+	}
+}
+
+func (p *adminPlugin) CreateTypedStep(typeName, name string, config *anypb.Any) (sdk.StepInstance, error) {
+	switch typeName {
+	case "step.admin_register_contribution":
+		return sdk.NewTypedStepFactory(typeName, &contracts.AdminStepConfig{}, &contracts.RegisterContributionInput{}, typedRegisterContribution).CreateTypedStep(typeName, name, config)
+	case "step.admin_list_contributions":
+		return sdk.NewTypedStepFactory(typeName, &contracts.AdminStepConfig{}, &contracts.ListContributionsInput{}, typedListContributions).CreateTypedStep(typeName, name, config)
+	case "step.admin_authorize_action":
+		return sdk.NewTypedStepFactory(typeName, &contracts.AdminStepConfig{}, &contracts.AuthorizeAdminActionInput{}, typedAuthorizeAction).CreateTypedStep(typeName, name, config)
+	case "step.admin_resource_action":
+		return sdk.NewTypedStepFactory(typeName, &contracts.AdminStepConfig{}, &contracts.AdminResourceActionInput{}, typedResourceAction).CreateTypedStep(typeName, name, config)
+	default:
+		return nil, fmt.Errorf("admin plugin: unknown typed step type %q", typeName)
+	}
 }
 
 // ContractRegistry returns the admin plugin's strict protobuf contracts.
@@ -125,6 +167,10 @@ func (p *adminPlugin) ContractRegistry() *pb.ContractRegistry {
 			adminStepContract("step.admin_list_contributions", "AdminStepConfig", "ListContributionsInput", "ListContributionsOutput"),
 			adminStepContract("step.admin_authorize_action", "AdminStepConfig", "AuthorizeAdminActionInput", "AuthorizeAdminActionOutput"),
 			adminStepContract("step.admin_resource_action", "AdminStepConfig", "AdminResourceActionInput", "AdminResourceActionOutput"),
+			adminServiceContract("admin.dashboard", "AdminDashboard", "RegisterContribution", "RegisterContributionInput", "RegisterContributionOutput"),
+			adminServiceContract("admin.dashboard", "AdminDashboard", "ListContributions", "ListContributionsInput", "ListContributionsOutput"),
+			adminServiceContract("admin.dashboard", "AdminDashboard", "AuthorizeAction", "AuthorizeAdminActionInput", "AuthorizeAdminActionOutput"),
+			adminServiceContract("admin.dashboard", "AdminDashboard", "DispatchResourceAction", "AdminResourceActionInput", "AdminResourceActionOutput"),
 		},
 	}
 }
@@ -145,6 +191,19 @@ func adminStepContract(stepType, configMessage, inputMessage, outputMessage stri
 		Kind:          pb.ContractKind_CONTRACT_KIND_STEP,
 		StepType:      stepType,
 		ConfigMessage: pkg + configMessage,
+		InputMessage:  pkg + inputMessage,
+		OutputMessage: pkg + outputMessage,
+		Mode:          pb.ContractMode_CONTRACT_MODE_STRICT_PROTO,
+	}
+}
+
+func adminServiceContract(moduleType, serviceName, method, inputMessage, outputMessage string) *pb.ContractDescriptor {
+	const pkg = "workflow.plugins.admin.v1."
+	return &pb.ContractDescriptor{
+		Kind:          pb.ContractKind_CONTRACT_KIND_SERVICE,
+		ModuleType:    moduleType,
+		ServiceName:   serviceName,
+		Method:        method,
 		InputMessage:  pkg + inputMessage,
 		OutputMessage: pkg + outputMessage,
 		Mode:          pb.ContractMode_CONTRACT_MODE_STRICT_PROTO,
