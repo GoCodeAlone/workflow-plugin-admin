@@ -11,8 +11,7 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`data-admin-shell-version`,
 		`data-contributions-endpoint`,
 		`id="contribution-nav"`,
-		`id="identity-panel"`,
-		`id="authorization-panel"`,
+		`id="contribution-list"`,
 	}
 	for _, needle := range required {
 		if !strings.Contains(html, needle) {
@@ -27,6 +26,49 @@ func TestEmbeddedAdminShell(t *testing.T) {
 	for _, needle := range forbidden {
 		if strings.Contains(html, needle) {
 			t.Fatalf("embedded admin shell must not hardcode secret name %q", needle)
+		}
+	}
+}
+
+func TestEmbeddedAdminShellDoesNotHardcodePluginSurfaces(t *testing.T) {
+	html := string(mustReadEmbeddedAsset(t, "ui_dist/index.html"))
+	forbidden := []string{
+		`data-panel="identity-panel"`,
+		`data-panel="authorization-panel"`,
+		`id="identity-panel"`,
+		`id="authorization-panel"`,
+		`Identity provider`,
+		`Authorization mode`,
+		`Manage application users through the configured auth plugin.`,
+		`Review and mutate roles, permissions, and relations through authz workflows.`,
+	}
+	for _, needle := range forbidden {
+		if strings.Contains(html, needle) {
+			t.Fatalf("embedded admin shell hardcodes plugin surface %q", needle)
+		}
+	}
+}
+
+func TestEmbeddedAdminShellRendersContributionDataSafely(t *testing.T) {
+	html := string(mustReadEmbeddedAsset(t, "ui_dist/index.html"))
+	forbidden := []string{
+		"row.innerHTML",
+		"table.innerHTML",
+		"insertAdjacentHTML",
+		"document.write",
+	}
+	for _, needle := range forbidden {
+		if strings.Contains(html, needle) {
+			t.Fatalf("embedded admin shell uses unsafe dynamic rendering primitive %q", needle)
+		}
+	}
+	required := []string{
+		"document.createTextNode",
+		"appendTableCell",
+	}
+	for _, needle := range required {
+		if !strings.Contains(html, needle) {
+			t.Fatalf("embedded admin shell missing safe rendering helper %q", needle)
 		}
 	}
 }

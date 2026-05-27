@@ -194,9 +194,7 @@
       <nav>
         <div class="nav-section">Core</div>
         <button class="nav-item active" type="button" data-panel="overview-panel">Overview</button>
-        <button class="nav-item" type="button" data-panel="identity-panel">Identity</button>
-        <button class="nav-item" type="button" data-panel="authorization-panel">Authorization</button>
-        <div class="nav-section">Contributions</div>
+        <div class="nav-section" id="contribution-nav-heading">Surfaces</div>
         <div id="contribution-nav"></div>
       </nav>
     </aside>
@@ -208,35 +206,13 @@
 
       <section class="grid" aria-label="Admin status">
         <div class="card"><span>Registered surfaces</span><strong id="surface-count">0</strong></div>
-        <div class="card"><span>Identity provider</span><strong>auth</strong></div>
-        <div class="card"><span>Authorization mode</span><strong>authz</strong></div>
+        <div class="card"><span>Categories</span><strong id="category-count">0</strong></div>
+        <div class="card"><span>Active surface</span><strong id="active-surface">Overview</strong></div>
       </section>
 
       <section id="overview-panel" class="panel active">
         <h2>Admin Overview</h2>
-        <p class="empty">Use this dashboard to manage the composed application's operational surfaces. Registered plugin views appear in the navigation as they are loaded.</p>
-      </section>
-
-      <section id="identity-panel" class="panel">
-        <h2>Identity</h2>
-        <table class="table">
-          <thead><tr><th>Surface</th><th>Purpose</th><th>Contract</th></tr></thead>
-          <tbody>
-            <tr><td>Users</td><td>Manage application users through the configured auth plugin.</td><td><span class="pill">auth</span></td></tr>
-            <tr><td>Credentials</td><td>Inspect and revoke credentials exposed by auth contracts.</td><td><span class="pill">strict proto</span></td></tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section id="authorization-panel" class="panel">
-        <h2>Authorization</h2>
-        <table class="table">
-          <thead><tr><th>Surface</th><th>Purpose</th><th>Enforcement</th></tr></thead>
-          <tbody>
-            <tr><td>Policies</td><td>Review and mutate roles, permissions, and relations through authz workflows.</td><td><span class="pill">route gated</span></td></tr>
-            <tr><td>Checks</td><td>Every admin action requires upstream authorization evidence.</td><td><span class="pill">default deny</span></td></tr>
-          </tbody>
-        </table>
+        <div id="overview-content" class="empty">No registered admin surfaces loaded.</div>
       </section>
 
       <section id="contributions-panel" class="panel">
@@ -251,13 +227,18 @@
     const status = document.getElementById('load-status');
     const title = document.getElementById('panel-title');
     const nav = document.getElementById('contribution-nav');
+    const navHeading = document.getElementById('contribution-nav-heading');
     const list = document.getElementById('contribution-list');
+    const overviewContent = document.getElementById('overview-content');
     const surfaceCount = document.getElementById('surface-count');
+    const categoryCount = document.getElementById('category-count');
+    const activeSurface = document.getElementById('active-surface');
 
     function showPanel(id, label) {
       document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === id));
       document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.panel === id));
       title.textContent = label;
+      activeSurface.textContent = label;
     }
 
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -267,31 +248,64 @@
     function renderContributions(contributions) {
       nav.textContent = '';
       surfaceCount.textContent = String(contributions.length);
+      const categories = Array.from(new Set(contributions.map(surface => surface.category || 'plugin')));
+      categoryCount.textContent = String(categories.length);
+      navHeading.hidden = contributions.length === 0;
       if (!contributions.length) {
         list.className = 'empty';
-        list.textContent = 'No contributed admin surfaces loaded.';
+        list.textContent = 'No registered admin surfaces loaded.';
+        overviewContent.className = 'empty';
+        overviewContent.textContent = 'No registered admin surfaces loaded.';
         return;
       }
+
+      categories.forEach(category => {
+        const section = document.createElement('div');
+        section.className = 'nav-section';
+        section.textContent = category;
+        nav.appendChild(section);
+
+        contributions
+          .filter(surface => (surface.category || 'plugin') === category)
+          .forEach(surface => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'nav-item';
+            button.dataset.panel = 'contributions-panel';
+            button.textContent = surface.title || surface.id || surface.path || 'Untitled surface';
+            button.addEventListener('click', () => openContribution(surface));
+            nav.appendChild(button);
+          });
+      });
+
       const table = document.createElement('table');
       table.className = 'table';
-      table.innerHTML = '<thead><tr><th>Title</th><th>Path</th><th>Mode</th><th>Category</th></tr></thead>';
+      const head = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Title', 'Path', 'Mode', 'Category'].forEach(label => appendTableCell(headRow, 'th', label));
+      head.appendChild(headRow);
+      table.appendChild(head);
       const body = document.createElement('tbody');
       contributions.forEach(surface => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'nav-item';
-        button.dataset.panel = 'contributions-panel';
-        button.textContent = surface.title || surface.id;
-        button.addEventListener('click', () => openContribution(surface));
-        nav.appendChild(button);
-
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${surface.title || surface.id}</td><td>${surface.path || ''}</td><td>${surface.render_mode || 'internal'}</td><td>${surface.category || 'plugin'}</td>`;
+        appendTableCell(row, 'td', surface.title || surface.id || '');
+        appendTableCell(row, 'td', surface.path || '');
+        appendTableCell(row, 'td', surface.render_mode || 'internal');
+        appendTableCell(row, 'td', surface.category || 'plugin');
         body.appendChild(row);
       });
       table.appendChild(body);
       list.className = '';
       list.replaceChildren(table);
+      overviewContent.className = '';
+      overviewContent.replaceChildren(table.cloneNode(true));
+    }
+
+    function appendTableCell(row, cellType, value) {
+      const cell = document.createElement(cellType);
+      cell.appendChild(document.createTextNode(String(value)));
+      row.appendChild(cell);
+      return cell;
     }
 
     function openContribution(surface) {
@@ -315,7 +329,7 @@
       }
       const details = document.createElement('div');
       details.className = 'empty';
-      details.textContent = `${surface.title || surface.id} is registered at ${surface.path || '(no path)'}.`;
+      details.textContent = surface.path || '(no path)';
       list.className = '';
       list.replaceChildren(details);
     }
