@@ -159,6 +159,23 @@
       background: #fbfcfd;
     }
     .warn { color: var(--warn); }
+    .surface-frame {
+      width: 100%;
+      min-height: 680px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    .surface-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+    .surface-actions a {
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
     @media (max-width: 860px) {
       .shell { grid-template-columns: 1fr; }
       aside { position: static; }
@@ -265,7 +282,7 @@
         button.className = 'nav-item';
         button.dataset.panel = 'contributions-panel';
         button.textContent = surface.title || surface.id;
-        button.addEventListener('click', () => showPanel('contributions-panel', button.textContent.trim()));
+        button.addEventListener('click', () => openContribution(surface));
         nav.appendChild(button);
 
         const row = document.createElement('tr');
@@ -275,6 +292,32 @@
       table.appendChild(body);
       list.className = '';
       list.replaceChildren(table);
+    }
+
+    function openContribution(surface) {
+      showPanel('contributions-panel', surface.title || surface.id || 'Contribution');
+      if (surface.render_mode === 'iframe' || surface.render_mode === 'asset') {
+        const frame = document.createElement('iframe');
+        frame.className = 'surface-frame';
+        frame.src = surface.path;
+        frame.title = surface.title || surface.id || 'Admin surface';
+        const actions = document.createElement('div');
+        actions.className = 'surface-actions';
+        const link = document.createElement('a');
+        link.href = surface.path;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.textContent = 'Open full screen';
+        actions.appendChild(link);
+        list.className = '';
+        list.replaceChildren(actions, frame);
+        return;
+      }
+      const details = document.createElement('div');
+      details.className = 'empty';
+      details.textContent = `${surface.title || surface.id} is registered at ${surface.path || '(no path)'}.`;
+      list.className = '';
+      list.replaceChildren(details);
     }
 
     async function loadContributions() {
@@ -294,4 +337,3 @@
   </script>
 </body>
 </html>
-

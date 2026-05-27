@@ -40,6 +40,38 @@ func TestContributionRegistryValidatesAndSorts(t *testing.T) {
 	}
 }
 
+func TestContributionRegistryFiltersByGrantedPermissions(t *testing.T) {
+	reg := newContributionRegistry()
+	if err := reg.register(&contracts.AdminContribution{
+		Id:         "authz",
+		Title:      "Authorization",
+		Path:       "/admin/authz",
+		Category:   "security",
+		RenderMode: "iframe",
+		Permissions: []*contracts.AdminPermission{
+			{Permission: "admin:authz.roles:read", Resource: "authz.roles", Action: "read"},
+		},
+	}); err != nil {
+		t.Fatalf("register authz: %v", err)
+	}
+	if err := reg.register(&contracts.AdminContribution{
+		Id:    "public",
+		Title: "Public",
+		Path:  "/admin/public",
+	}); err != nil {
+		t.Fatalf("register public: %v", err)
+	}
+
+	withoutGrant := reg.listForPermissions("", nil)
+	if len(withoutGrant) != 1 || withoutGrant[0].Id != "public" {
+		t.Fatalf("without grant = %#v, want only public", withoutGrant)
+	}
+	withGrant := reg.listForPermissions("", []string{"admin:authz.roles:read"})
+	if len(withGrant) != 2 {
+		t.Fatalf("with grant len = %d, want 2", len(withGrant))
+	}
+}
+
 func TestDashboardModuleServiceInvoker(t *testing.T) {
 	module := newDashboardModule("admin", &contracts.AdminDashboardConfig{
 		RoutePrefix: "/admin",

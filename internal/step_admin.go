@@ -76,7 +76,7 @@ func typedListContributions(_ context.Context, req sdk.TypedStepRequest[*contrac
 		return nil, err
 	}
 	return &sdk.TypedStepResult[*contracts.ListContributionsOutput]{
-		Output: &contracts.ListContributionsOutput{Contributions: module.registry.list(req.Input.GetAppContext())},
+		Output: &contracts.ListContributionsOutput{Contributions: module.registry.listForPermissions(req.Input.GetAppContext(), req.Input.GetGrantedPermissions())},
 	}, nil
 }
 

@@ -46,12 +46,24 @@ func (r *contributionRegistry) register(contribution *contracts.AdminContributio
 }
 
 func (r *contributionRegistry) list(appContext string) []*contracts.AdminContribution {
+	return r.listForPermissions(appContext, nil)
+}
+
+func (r *contributionRegistry) listForPermissions(appContext string, grantedPermissions []string) []*contracts.AdminContribution {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	grants := make(map[string]struct{}, len(grantedPermissions))
+	for _, permission := range grantedPermissions {
+		grants[permission] = struct{}{}
+	}
 
 	out := make([]*contracts.AdminContribution, 0, len(r.contributions))
 	for _, contribution := range r.contributions {
 		if appContext != "" && contribution.AppContext != "" && contribution.AppContext != appContext {
+			continue
+		}
+		if !contributionVisible(contribution, grants) {
 			continue
 		}
 		out = append(out, proto.Clone(contribution).(*contracts.AdminContribution))
@@ -63,4 +75,23 @@ func (r *contributionRegistry) list(appContext string) []*contracts.AdminContrib
 		return out[i].Category < out[j].Category
 	})
 	return out
+}
+
+func contributionVisible(contribution *contracts.AdminContribution, grants map[string]struct{}) bool {
+	if len(contribution.GetPermissions()) == 0 {
+		return true
+	}
+	for _, permission := range contribution.GetPermissions() {
+		if _, ok := grants[permission.GetPermission()]; ok && permission.GetPermission() != "" {
+			return true
+		}
+		composed := permission.GetResource()
+		if permission.GetAction() != "" {
+			composed += ":" + permission.GetAction()
+		}
+		if _, ok := grants[composed]; ok && composed != "" {
+			return true
+		}
+	}
+	return false
 }

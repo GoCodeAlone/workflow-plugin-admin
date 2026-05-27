@@ -77,7 +77,7 @@ func (m *dashboardModule) InvokeMethod(method string, args map[string]any) (map[
 		}, nil
 	case "ListContributions":
 		appContext, _ := args["app_context"].(string)
-		contributions := m.registry.list(appContext)
+		contributions := m.registry.listForPermissions(appContext, stringSliceValue(args, "granted_permissions"))
 		out := make([]map[string]any, 0, len(contributions))
 		for _, contribution := range contributions {
 			out = append(out, contributionToMap(contribution))
@@ -118,7 +118,7 @@ func contributionFromMap(args map[string]any) *contracts.AdminContribution {
 	if nested, ok := args["contribution"].(map[string]any); ok {
 		args = nested
 	}
-	return &contracts.AdminContribution{
+	contribution := &contracts.AdminContribution{
 		Id:         stringValue(args, "id"),
 		Title:      stringValue(args, "title"),
 		Category:   stringValue(args, "category"),
@@ -127,6 +127,10 @@ func contributionFromMap(args map[string]any) *contracts.AdminContribution {
 		AppContext: stringValue(args, "app_context"),
 		Actions:    stringSliceValue(args, "actions"),
 	}
+	for _, permission := range permissionValues(args["permissions"]) {
+		contribution.Permissions = append(contribution.Permissions, permission)
+	}
+	return contribution
 }
 
 func contributionToMap(contribution *contracts.AdminContribution) map[string]any {
@@ -141,7 +145,48 @@ func contributionToMap(contribution *contracts.AdminContribution) map[string]any
 		"render_mode": contribution.RenderMode,
 		"app_context": contribution.AppContext,
 		"actions":     append([]string(nil), contribution.Actions...),
+		"permissions": permissionMaps(contribution.Permissions),
 	}
+}
+
+func permissionValues(value any) []*contracts.AdminPermission {
+	switch permissions := value.(type) {
+	case []string:
+		out := make([]*contracts.AdminPermission, 0, len(permissions))
+		for _, permission := range permissions {
+			out = append(out, &contracts.AdminPermission{Permission: permission})
+		}
+		return out
+	case []any:
+		out := make([]*contracts.AdminPermission, 0, len(permissions))
+		for _, item := range permissions {
+			switch permission := item.(type) {
+			case string:
+				out = append(out, &contracts.AdminPermission{Permission: permission})
+			case map[string]any:
+				out = append(out, &contracts.AdminPermission{
+					Permission: stringValue(permission, "permission"),
+					Resource:   stringValue(permission, "resource"),
+					Action:     stringValue(permission, "action"),
+				})
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func permissionMaps(permissions []*contracts.AdminPermission) []map[string]any {
+	out := make([]map[string]any, 0, len(permissions))
+	for _, permission := range permissions {
+		out = append(out, map[string]any{
+			"permission": permission.GetPermission(),
+			"resource":   permission.GetResource(),
+			"action":     permission.GetAction(),
+		})
+	}
+	return out
 }
 
 func authorizeFromEvidence(args map[string]any) (bool, string) {
