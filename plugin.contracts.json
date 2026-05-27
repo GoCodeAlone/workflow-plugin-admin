@@ -1,0 +1,80 @@
+{
+  "version": "v1",
+  "contracts": [
+    {
+      "kind": "module",
+      "type": "admin.dashboard",
+      "mode": "strict",
+      "config": "workflow.plugins.admin.v1.AdminDashboardConfig"
+    },
+    {
+      "kind": "step",
+      "type": "step.admin_register_contribution",
+      "mode": "strict",
+      "config": "workflow.plugins.admin.v1.AdminStepConfig",
+      "input": "workflow.plugins.admin.v1.RegisterContributionInput",
+      "output": "workflow.plugins.admin.v1.RegisterContributionOutput"
+    },
+    {
+      "kind": "step",
+      "type": "step.admin_list_contributions",
+      "mode": "strict",
+      "config": "workflow.plugins.admin.v1.AdminStepConfig",
+      "input": "workflow.plugins.admin.v1.ListContributionsInput",
+      "output": "workflow.plugins.admin.v1.ListContributionsOutput"
+    },
+    {
+      "kind": "step",
+      "type": "step.admin_authorize_action",
+      "mode": "strict",
+      "config": "workflow.plugins.admin.v1.AdminStepConfig",
+      "input": "workflow.plugins.admin.v1.AuthorizeAdminActionInput",
+      "output": "workflow.plugins.admin.v1.AuthorizeAdminActionOutput"
+    },
+    {
+      "kind": "step",
+      "type": "step.admin_resource_action",
+      "mode": "strict",
+      "config": "workflow.plugins.admin.v1.AdminStepConfig",
+      "input": "workflow.plugins.admin.v1.AdminResourceActionInput",
+      "output": "workflow.plugins.admin.v1.AdminResourceActionOutput"
+    },
+    {
+      "kind": "service_method",
+      "type": "admin.dashboard",
+      "serviceName": "AdminDashboard",
+      "method": "RegisterContribution",
+      "mode": "strict",
+      "input": "workflow.plugins.admin.v1.RegisterContributionInput",
+      "output": "workflow.plugins.admin.v1.RegisterContributionOutput"
+    },
+    {
+      "kind": "service_method",
+      "type": "admin.dashboard",
+      "serviceName": "AdminDashboard",
+      "method": "ListContributions",
+      "mode": "strict",
+      "input": "workflow.plugins.admin.v1.ListContributionsInput",
+      "output": "workflow.plugins.admin.v1.ListContributionsOutput"
+    },
+    {
+      "kind": "service_method",
+      "type": "admin.dashboard",
+      "serviceName": "AdminDashboard",
+      "method": "AuthorizeAction",
+      "mode": "strict",
+      "input": "workflow.plugins.admin.v1.AuthorizeAdminActionInput",
+      "output": "workflow.plugins.admin.v1.AuthorizeAdminActionOutput"
+    },
+    {
+      "kind": "service_method",
+      "type": "admin.dashboard",
+      "serviceName": "AdminDashboard",
+      "method": "DispatchResourceAction",
+      "mode": "strict",
+      "input": "workflow.plugins.admin.v1.AdminResourceActionInput",
+      "output": "workflow.plugins.admin.v1.AdminResourceActionOutput"
+    }
+  ]
+}
+

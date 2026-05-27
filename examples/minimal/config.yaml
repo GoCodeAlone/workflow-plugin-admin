@@ -1,5 +1,52 @@
-# Placeholder minimal config for workflow-plugin-admin.
-# This plugin's registry manifest does not declare any module/step types yet.
-# See https://github.com/GoCodeAlone/workflow-plugin-admin for the full feature surface.
-
 version: 1
+
+modules:
+  - name: admin
+    type: admin.dashboard
+    config:
+      route_prefix: /admin
+      app_name: Minimal Workflow App
+      target_app: minimal
+      auth_module: auth
+      authz_module: authz
+      mode: embedded
+
+pipelines:
+  register-orders-admin:
+    trigger:
+      type: manual
+    steps:
+      - name: register
+        type: step.admin_register_contribution
+        config:
+          module: admin
+        input:
+          id: orders
+          title: Orders
+          category: operations
+          path: /admin/orders
+          render_mode: json-schema
+          app_context: minimal
+
+  list-admin-contributions:
+    trigger:
+      type: manual
+    steps:
+      - name: authorize
+        type: step.admin_authorize_action
+        config:
+          module: admin
+        input:
+          subject: admin
+          resource: admin:contributions
+          action: read
+          app_context: minimal
+          authz_checked: true
+          authz_allowed: true
+      - name: list
+        type: step.admin_list_contributions
+        config:
+          module: admin
+        input:
+          app_context: minimal
+

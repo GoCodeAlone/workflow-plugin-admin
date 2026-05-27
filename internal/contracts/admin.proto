@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package workflow.plugins.admin.v1;
+
+option go_package = "github.com/GoCodeAlone/workflow-plugin-admin/internal/contracts";
+
+import "google/protobuf/struct.proto";
+
+message AdminDashboardConfig {
+  string route_prefix = 1;
+  string app_name = 2;
+  string target_app = 3;
+  string auth_module = 4;
+  string authz_module = 5;
+  string mode = 6;
+  string asset_root = 7;
+}
+
+message AdminStepConfig {
+  string module = 1;
+}
+
+message AdminPermission {
+  string resource = 1;
+  string action = 2;
+  string permission = 3;
+}
+
+message AdminContribution {
+  string id = 1;
+  string title = 2;
+  string category = 3;
+  string path = 4;
+  string render_mode = 5;
+  string app_context = 6;
+  repeated AdminPermission permissions = 7;
+  google.protobuf.Struct metadata = 8;
+  repeated string actions = 9;
+}
+
+message RegisterContributionInput {
+  string module = 1;
+  AdminContribution contribution = 2;
+}
+
+message RegisterContributionOutput {
+  bool registered = 1;
+  AdminContribution contribution = 2;
+  string error = 100;
+}
+
+message ListContributionsInput {
+  string module = 1;
+  string app_context = 2;
+  repeated string granted_permissions = 3;
+}
+
+message ListContributionsOutput {
+  repeated AdminContribution contributions = 1;
+  string error = 100;
+}
+
+message AuthorizeAdminActionInput {
+  string module = 1;
+  string subject = 2;
+  string resource = 3;
+  string action = 4;
+  string app_context = 5;
+  bool authz_checked = 6;
+  bool authz_allowed = 7;
+  repeated string granted_permissions = 8;
+}
+
+message AuthorizeAdminActionOutput {
+  bool allowed = 1;
+  string subject = 2;
+  string resource = 3;
+  string action = 4;
+  string reason = 5;
+  string error = 100;
+}
+
+message AdminResourceActionInput {
+  string module = 1;
+  string contribution_id = 2;
+  string resource = 3;
+  string action = 4;
+  string subject = 5;
+  string app_context = 6;
+  bool authz_checked = 7;
+  bool authz_allowed = 8;
+  google.protobuf.Struct payload = 9;
+}
+
+message AdminActionResult {
+  bool accepted = 1;
+  string status = 2;
+  google.protobuf.Struct output = 3;
+  string error = 100;
+}
+
+message AdminResourceActionOutput {
+  AdminActionResult result = 1;
+  string error = 100;
+}
+

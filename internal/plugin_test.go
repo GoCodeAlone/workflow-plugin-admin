@@ -59,8 +59,7 @@ func TestAdminPlugin_Interfaces(t *testing.T) {
 		t.Error("plugin does not implement ConfigProvider")
 	}
 
-	// Must NOT implement ModuleProvider (all admin modules are native host types)
-	if _, ok := plugin.(sdk.ModuleProvider); ok {
-		t.Error("plugin should not implement ModuleProvider")
+	if _, ok := plugin.(sdk.ModuleProvider); !ok {
+		t.Error("plugin should implement ModuleProvider")
 	}
 }

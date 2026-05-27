@@ -19,8 +19,15 @@
   "repository": "https://github.com/GoCodeAlone/workflow-plugin-admin",
   "capabilities": {
     "configProvider": true,
-    "moduleTypes": [],
-    "stepTypes": [],
+    "moduleTypes": [
+      "admin.dashboard"
+    ],
+    "stepTypes": [
+      "step.admin_register_contribution",
+      "step.admin_list_contributions",
+      "step.admin_authorize_action",
+      "step.admin_resource_action"
+    ],
     "triggerTypes": []
   }
 }
