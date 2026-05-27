@@ -1,6 +1,6 @@
 {
   "name": "admin",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "author": "GoCodeAlone",
   "description": "Admin dashboard UI and config-driven admin routes",
   "type": "external",
