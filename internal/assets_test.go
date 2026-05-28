@@ -10,8 +10,12 @@ func TestEmbeddedAdminShell(t *testing.T) {
 	required := []string{
 		`data-admin-shell-version`,
 		`data-contributions-endpoint`,
+		`data-login-endpoint`,
+		`data-token-storage-key`,
+		`id="login-form"`,
 		`id="contribution-nav"`,
 		`id="contribution-list"`,
+		`Authorization`,
 	}
 	for _, needle := range required {
 		if !strings.Contains(html, needle) {
