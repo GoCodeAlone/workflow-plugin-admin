@@ -176,6 +176,55 @@
       font-weight: 700;
       text-decoration: none;
     }
+    .hidden { display: none !important; }
+    .login-panel {
+      max-width: 420px;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .field label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .field input {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--ink);
+      font: inherit;
+      background: #fff;
+    }
+    .primary-button,
+    .secondary-button {
+      min-height: 36px;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .primary-button {
+      border: 1px solid var(--accent);
+      color: var(--accent-ink);
+      background: var(--accent);
+    }
+    .secondary-button {
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: var(--panel);
+    }
+    .button-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     @media (max-width: 860px) {
       .shell { grid-template-columns: 1fr; }
       aside { position: static; }
@@ -185,13 +234,13 @@
   </style>
 </head>
 <body>
-  <div class="shell" data-admin-shell-version="1" data-contributions-endpoint="/api/admin/contributions">
+  <div class="shell" data-admin-shell-version="1" data-contributions-endpoint="/api/admin/contributions" data-login-endpoint="/api/admin/auth/login" data-token-storage-key="workflow.admin.token">
     <aside>
       <div class="brand">
         <strong>Workflow Admin</strong>
         <span id="target-app-label">Application control plane</span>
       </div>
-      <nav>
+      <nav id="admin-nav">
         <div class="nav-section">Core</div>
         <button class="nav-item active" type="button" data-panel="overview-panel">Overview</button>
         <div class="nav-section" id="contribution-nav-heading">Surfaces</div>
@@ -201,10 +250,28 @@
     <main>
       <header>
         <h1 id="panel-title">Overview</h1>
-        <div class="status" id="load-status">Loading contributions</div>
+        <div class="status" id="load-status">Checking session</div>
       </header>
 
-      <section class="grid" aria-label="Admin status">
+      <section id="login-panel" class="panel active login-panel">
+        <h2>Sign In</h2>
+        <form id="login-form" autocomplete="on">
+          <div class="field">
+            <label for="admin-email">Email</label>
+            <input id="admin-email" name="email" type="email" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="admin-password">Password</label>
+            <input id="admin-password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="button-row">
+            <button class="primary-button" type="submit">Sign in</button>
+            <span id="login-error" class="warn hidden"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="grid hidden" id="admin-status-grid" aria-label="Admin status">
         <div class="card"><span>Registered surfaces</span><strong id="surface-count">0</strong></div>
         <div class="card"><span>Categories</span><strong id="category-count">0</strong></div>
         <div class="card"><span>Active surface</span><strong id="active-surface">Overview</strong></div>
@@ -226,19 +293,76 @@
     const shell = document.querySelector('.shell');
     const status = document.getElementById('load-status');
     const title = document.getElementById('panel-title');
+    const adminNav = document.getElementById('admin-nav');
     const nav = document.getElementById('contribution-nav');
     const navHeading = document.getElementById('contribution-nav-heading');
     const list = document.getElementById('contribution-list');
     const overviewContent = document.getElementById('overview-content');
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    const statusGrid = document.getElementById('admin-status-grid');
     const surfaceCount = document.getElementById('surface-count');
     const categoryCount = document.getElementById('category-count');
     const activeSurface = document.getElementById('active-surface');
+    const tokenStorageKey = shell.dataset.tokenStorageKey || 'workflow.admin.token';
+
+    function storedToken() {
+      try {
+        return window.localStorage.getItem(tokenStorageKey) || '';
+      } catch (_) {
+        return '';
+      }
+    }
+
+    function storeToken(token) {
+      try {
+        window.localStorage.setItem(tokenStorageKey, token);
+      } catch (_) {
+        // Storage can be unavailable in private or embedded contexts.
+      }
+    }
+
+    function clearToken() {
+      try {
+        window.localStorage.removeItem(tokenStorageKey);
+      } catch (_) {
+        // Storage can be unavailable in private or embedded contexts.
+      }
+    }
+
+    function authHeaders(extra = {}) {
+      const token = storedToken();
+      const headers = { ...extra };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return headers;
+    }
 
     function showPanel(id, label) {
       document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === id));
       document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.panel === id));
       title.textContent = label;
       activeSurface.textContent = label;
+    }
+
+    function showLogin(message = '') {
+      clearToken();
+      statusGrid.classList.add('hidden');
+      adminNav.classList.add('hidden');
+      nav.textContent = '';
+      navHeading.hidden = true;
+      document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+      document.getElementById('login-panel').classList.add('active');
+      title.textContent = 'Sign In';
+      status.textContent = 'Sign in required';
+      loginError.textContent = message;
+      loginError.classList.toggle('hidden', !message);
+    }
+
+    function showAdminShell() {
+      statusGrid.classList.remove('hidden');
+      adminNav.classList.remove('hidden');
+      document.getElementById('login-panel').classList.remove('active');
+      showPanel('overview-panel', 'Overview');
     }
 
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -335,8 +459,17 @@
     }
 
     async function loadContributions() {
+      if (!storedToken()) {
+        showLogin();
+        return;
+      }
+      showAdminShell();
       try {
-        const response = await fetch(shell.dataset.contributionsEndpoint, { headers: { accept: 'application/json' } });
+        const response = await fetch(shell.dataset.contributionsEndpoint, { headers: authHeaders({ accept: 'application/json' }) });
+        if (response.status === 401 || response.status === 403) {
+          showLogin('Your session is not authorized for this admin.');
+          return;
+        }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
         renderContributions(payload.contributions || []);
@@ -346,6 +479,32 @@
         status.textContent = 'Offline fallback';
       }
     }
+
+    loginForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      loginError.classList.add('hidden');
+      status.textContent = 'Signing in';
+      const form = new FormData(loginForm);
+      try {
+        const response = await fetch(shell.dataset.loginEndpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({
+            email: String(form.get('email') || ''),
+            password: String(form.get('password') || '')
+          })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        const token = payload.token || payload.access_token;
+        if (!token) throw new Error('missing token');
+        storeToken(token);
+        loginForm.reset();
+        await loadContributions();
+      } catch (error) {
+        showLogin('Sign-in failed.');
+      }
+    });
 
     loadContributions();
   </script>
