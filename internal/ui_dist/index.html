@@ -243,7 +243,7 @@
       <nav id="admin-nav">
         <div class="nav-section">Core</div>
         <button class="nav-item active" type="button" data-panel="overview-panel">Overview</button>
-        <div class="nav-section" id="contribution-nav-heading">Surfaces</div>
+        <div class="nav-section" id="contribution-nav-heading">Admin tools</div>
         <div id="contribution-nav"></div>
       </nav>
     </aside>
@@ -272,19 +272,19 @@
       </section>
 
       <section class="grid hidden" id="admin-status-grid" aria-label="Admin status">
-        <div class="card"><span>Registered surfaces</span><strong id="surface-count">0</strong></div>
+        <div class="card"><span>Management pages</span><strong id="surface-count">0</strong></div>
         <div class="card"><span>Categories</span><strong id="category-count">0</strong></div>
-        <div class="card"><span>Active surface</span><strong id="active-surface">Overview</strong></div>
+        <div class="card"><span>Active tool</span><strong id="active-surface">Overview</strong></div>
       </section>
 
       <section id="overview-panel" class="panel active">
         <h2>Admin Overview</h2>
-        <div id="overview-content" class="empty">No registered admin surfaces loaded.</div>
+        <div id="overview-content" class="empty">No admin tools loaded.</div>
       </section>
 
       <section id="contributions-panel" class="panel">
-        <h2>Contributions</h2>
-        <div id="contribution-list" class="empty">No contributed admin surfaces loaded.</div>
+        <h2>Management pages</h2>
+        <div id="contribution-list" class="empty">No admin tools loaded.</div>
       </section>
     </main>
   </div>
@@ -337,6 +337,31 @@
       return headers;
     }
 
+    function isAllowedAdminToolSource(sourceWindow) {
+      if (!sourceWindow) return false;
+      for (const frame of document.querySelectorAll('iframe.surface-frame')) {
+        try {
+          const framePath = new URL(frame.src, window.location.origin).pathname;
+          if (frame.contentWindow === sourceWindow && framePath.startsWith('/admin')) return true;
+        } catch (_) {
+          // Ignore malformed frame sources.
+        }
+      }
+      return false;
+    }
+
+    window.addEventListener('message', event => {
+      const message = event.data || {};
+      if (message.type !== 'workflow.admin.auth.request') return;
+      if (event.origin !== window.location.origin) return;
+      if (!isAllowedAdminToolSource(event.source)) return;
+      event.source.postMessage({
+        type: 'workflow.admin.auth.response',
+        requestId: message.requestId || '',
+        token: storedToken()
+      }, event.origin);
+    });
+
     function showPanel(id, label) {
       document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === id));
       document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.panel === id));
@@ -369,7 +394,7 @@
       item.addEventListener('click', () => showPanel(item.dataset.panel, item.textContent.trim()));
     });
 
-    function renderContributions(contributions) {
+    function renderAdminTools(contributions) {
       nav.textContent = '';
       surfaceCount.textContent = String(contributions.length);
       const categories = Array.from(new Set(contributions.map(surface => surface.category || 'plugin')));
@@ -377,9 +402,9 @@
       navHeading.hidden = contributions.length === 0;
       if (!contributions.length) {
         list.className = 'empty';
-        list.textContent = 'No registered admin surfaces loaded.';
+        list.textContent = 'No admin tools loaded.';
         overviewContent.className = 'empty';
-        overviewContent.textContent = 'No registered admin surfaces loaded.';
+        overviewContent.textContent = 'No admin tools loaded.';
         return;
       }
 
@@ -458,7 +483,7 @@
       list.replaceChildren(details);
     }
 
-    async function loadContributions() {
+    async function loadAdminTools() {
       if (!storedToken()) {
         showLogin();
         return;
@@ -472,10 +497,10 @@
         }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        renderContributions(payload.contributions || []);
-        status.textContent = 'Contributions loaded';
+        renderAdminTools(payload.contributions || []);
+        status.textContent = 'Admin tools loaded';
       } catch (error) {
-        renderContributions([]);
+        renderAdminTools([]);
         status.textContent = 'Offline fallback';
       }
     }
@@ -500,13 +525,13 @@
         if (!token) throw new Error('missing token');
         storeToken(token);
         loginForm.reset();
-        await loadContributions();
+        await loadAdminTools();
       } catch (error) {
         showLogin('Sign-in failed.');
       }
     });
 
-    loadContributions();
+    loadAdminTools();
   </script>
 </body>
 </html>
