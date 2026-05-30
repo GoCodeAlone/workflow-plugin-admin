@@ -20,6 +20,10 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`workflow.admin.auth.response`,
 		`event.origin !== window.location.origin`,
 		`startsWith('/admin')`,
+		`render_mode === 'config-form'`,
+		`renderConfigForm`,
+		`validate_path`,
+		`fetchConfigDescription`,
 	}
 	for _, needle := range required {
 		if !strings.Contains(html, needle) {

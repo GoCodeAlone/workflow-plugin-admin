@@ -176,6 +176,68 @@
       font-weight: 700;
       text-decoration: none;
     }
+    .config-form {
+      display: grid;
+      gap: 16px;
+    }
+    .config-group {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfd;
+    }
+    .config-group h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+    .config-group p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .config-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .config-control {
+      display: grid;
+      gap: 6px;
+    }
+    .config-control label {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .config-control small {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .config-control input,
+    .config-control select {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--ink);
+      font: inherit;
+      background: #fff;
+    }
+    .config-control input[type="checkbox"] {
+      width: auto;
+      min-height: auto;
+      justify-self: start;
+    }
+    .config-result {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fafc;
+      white-space: pre-wrap;
+      font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--muted);
+    }
     .hidden { display: none !important; }
     .login-panel {
       max-width: 420px;
@@ -457,8 +519,126 @@
       return cell;
     }
 
+    async function fetchConfigDescription(surface) {
+      const metadata = surface.metadata || {};
+      const describePath = metadata.describe_path || surface.path;
+      const response = await fetch(describePath, { headers: authHeaders({ accept: 'application/json' }) });
+      if (response.status === 401 || response.status === 403) throw new Error('Not authorized');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    function renderConfigForm(surface, description) {
+      const metadata = surface.metadata || {};
+      const form = document.createElement('form');
+      form.className = 'config-form';
+      const draft = { ...(description.effective_config || {}) };
+      const groups = Array.isArray(description.groups) ? description.groups : [];
+
+      groups.forEach(group => {
+        const section = document.createElement('section');
+        section.className = 'config-group';
+        const heading = document.createElement('h3');
+        heading.appendChild(document.createTextNode(group.label || group.key || 'Configuration'));
+        section.appendChild(heading);
+        if (group.description) {
+          const desc = document.createElement('p');
+          desc.appendChild(document.createTextNode(group.description));
+          section.appendChild(desc);
+        }
+        const controls = document.createElement('div');
+        controls.className = 'config-controls';
+        (group.controls || []).forEach(control => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'config-control';
+          const id = `config-${surface.id || 'tool'}-${control.key}`;
+          const label = document.createElement('label');
+          label.htmlFor = id;
+          label.appendChild(document.createTextNode(control.label || control.key));
+          wrapper.appendChild(label);
+
+          let input;
+          if (control.input_type === 'toggle') {
+            input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = Boolean(draft[control.config_key || control.key]);
+          } else if (Array.isArray(control.options) && control.options.length > 0) {
+            input = document.createElement('select');
+            control.options.forEach(option => {
+              const opt = document.createElement('option');
+              opt.value = option.value || '';
+              opt.textContent = option.label || option.value || '';
+              input.appendChild(opt);
+            });
+            input.value = String(draft[control.config_key || control.key] || '');
+          } else {
+            input = document.createElement('input');
+            input.type = control.input_type === 'secret' ? 'password' : (control.input_type || 'text');
+            input.value = control.secret ? '' : String(draft[control.config_key || control.key] || '');
+          }
+          input.id = id;
+          input.disabled = control.enabled === false;
+          input.title = control.help_text || control.description || '';
+          input.addEventListener('change', () => {
+            const key = control.config_key || control.key;
+            draft[key] = input.type === 'checkbox' ? input.checked : input.value;
+          });
+          wrapper.appendChild(input);
+
+          const help = document.createElement('small');
+          help.appendChild(document.createTextNode(control.disabled_reason || control.help_text || control.description || ''));
+          wrapper.appendChild(help);
+          controls.appendChild(wrapper);
+        });
+        section.appendChild(controls);
+        form.appendChild(section);
+      });
+
+      const actions = document.createElement('div');
+      actions.className = 'button-row';
+      const validate = document.createElement('button');
+      validate.type = 'button';
+      validate.className = 'primary-button';
+      validate.textContent = 'Validate changes';
+      actions.appendChild(validate);
+      form.appendChild(actions);
+
+      const result = document.createElement('pre');
+      result.className = 'config-result';
+      result.textContent = 'Loaded from plugin configuration contract.';
+      form.appendChild(result);
+
+      validate.addEventListener('click', async () => {
+        const validatePath = metadata.validate_path;
+        if (!validatePath) {
+          result.textContent = 'This admin tool did not provide a validation endpoint.';
+          return;
+        }
+        const response = await fetch(validatePath, {
+          method: 'POST',
+          headers: authHeaders({ accept: 'application/json', 'content-type': 'application/json' }),
+          body: JSON.stringify({ desired_config: draft })
+        });
+        result.textContent = JSON.stringify(await response.json(), null, 2);
+      });
+
+      list.className = '';
+      list.replaceChildren(form);
+    }
+
     function openContribution(surface) {
       showPanel('contributions-panel', surface.title || surface.id || 'Contribution');
+      if (surface.render_mode === 'config-form') {
+        list.className = 'empty';
+        list.textContent = 'Loading configuration...';
+        fetchConfigDescription(surface)
+          .then(description => renderConfigForm(surface, description))
+          .catch(error => {
+            list.className = 'warn';
+            list.textContent = error.message || 'Unable to load configuration.';
+          });
+        return;
+      }
       if (surface.render_mode === 'iframe' || surface.render_mode === 'asset') {
         const frame = document.createElement('iframe');
         frame.className = 'surface-frame';

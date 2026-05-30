@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/GoCodeAlone/workflow-plugin-admin/internal/contracts"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var dashboardModules = struct {
@@ -127,6 +128,11 @@ func contributionFromMap(args map[string]any) *contracts.AdminContribution {
 		AppContext: stringValue(args, "app_context"),
 		Actions:    stringSliceValue(args, "actions"),
 	}
+	if metadata := mapValue(args, "metadata"); len(metadata) > 0 {
+		if pbMetadata, err := structpb.NewStruct(metadata); err == nil {
+			contribution.Metadata = pbMetadata
+		}
+	}
 	for _, permission := range permissionValues(args["permissions"]) {
 		contribution.Permissions = append(contribution.Permissions, permission)
 	}
@@ -146,7 +152,15 @@ func contributionToMap(contribution *contracts.AdminContribution) map[string]any
 		"app_context": contribution.AppContext,
 		"actions":     append([]string(nil), contribution.Actions...),
 		"permissions": permissionMaps(contribution.Permissions),
+		"metadata":    contributionMetadataMap(contribution),
 	}
+}
+
+func contributionMetadataMap(contribution *contracts.AdminContribution) map[string]any {
+	if contribution == nil || contribution.Metadata == nil {
+		return map[string]any{}
+	}
+	return contribution.Metadata.AsMap()
 }
 
 func permissionValues(value any) []*contracts.AdminPermission {
@@ -202,6 +216,23 @@ func authorizeFromEvidence(args map[string]any) (bool, string) {
 func stringValue(args map[string]any, key string) string {
 	value, _ := args[key].(string)
 	return value
+}
+
+func mapValue(args map[string]any, key string) map[string]any {
+	switch value := args[key].(type) {
+	case map[string]any:
+		return value
+	case map[any]any:
+		out := make(map[string]any, len(value))
+		for k, v := range value {
+			if s, ok := k.(string); ok {
+				out[s] = v
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 func stringSliceValue(args map[string]any, key string) []string {
