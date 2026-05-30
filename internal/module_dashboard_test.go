@@ -98,6 +98,10 @@ func TestDashboardModuleServiceInvoker(t *testing.T) {
 		"category":    "operations",
 		"render_mode": "json-schema",
 		"app_context": "scenario",
+		"metadata": map[string]any{
+			"describe_path": "/api/admin/orders/config",
+			"validate_path": "/api/admin/orders/config/validate",
+		},
 	})
 	if err != nil {
 		t.Fatalf("RegisterContribution: %v", err)
@@ -116,6 +120,13 @@ func TestDashboardModuleServiceInvoker(t *testing.T) {
 	}
 	if len(contributions) != 1 || contributions[0]["id"] != "orders" {
 		t.Fatalf("unexpected contributions: %#v", contributions)
+	}
+	metadata, ok := contributions[0]["metadata"].(map[string]any)
+	if !ok {
+		t.Fatalf("metadata type = %T, want map[string]any", contributions[0]["metadata"])
+	}
+	if metadata["validate_path"] != "/api/admin/orders/config/validate" {
+		t.Fatalf("metadata validate_path = %v", metadata["validate_path"])
 	}
 }
 

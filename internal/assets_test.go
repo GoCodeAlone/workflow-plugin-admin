@@ -16,6 +16,16 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`id="contribution-nav"`,
 		`id="contribution-list"`,
 		`Authorization`,
+		`workflow.admin.auth.request`,
+		`workflow.admin.auth.response`,
+		`grantedScopes: adminToolGrants`,
+		`adminToolFrames`,
+		`event.origin !== window.location.origin`,
+		`startsWith('/admin')`,
+		`render_mode === 'config-form'`,
+		`renderConfigForm`,
+		`validate_path`,
+		`fetchConfigDescription`,
 	}
 	for _, needle := range required {
 		if !strings.Contains(html, needle) {
@@ -30,6 +40,31 @@ func TestEmbeddedAdminShell(t *testing.T) {
 	for _, needle := range forbidden {
 		if strings.Contains(html, needle) {
 			t.Fatalf("embedded admin shell must not hardcode secret name %q", needle)
+		}
+	}
+}
+
+func TestEmbeddedAdminShellUsesUserFacingToolLanguage(t *testing.T) {
+	html := string(mustReadEmbeddedAsset(t, "ui_dist/index.html"))
+	required := []string{
+		"Admin tools",
+		"Management pages",
+	}
+	for _, needle := range required {
+		if !strings.Contains(html, needle) {
+			t.Fatalf("embedded admin shell missing user-facing copy %q", needle)
+		}
+	}
+	forbidden := []string{
+		"Surfaces",
+		"Registered surfaces",
+		"Active surface",
+		"Contributions",
+		"contributed admin surfaces",
+	}
+	for _, needle := range forbidden {
+		if strings.Contains(html, needle) {
+			t.Fatalf("embedded admin shell exposes implementation jargon %q", needle)
 		}
 	}
 }
