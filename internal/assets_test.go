@@ -18,6 +18,8 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`Authorization`,
 		`workflow.admin.auth.request`,
 		`workflow.admin.auth.response`,
+		`grantedScopes: adminToolGrants`,
+		`adminToolFrames`,
 		`event.origin !== window.location.origin`,
 		`startsWith('/admin')`,
 		`render_mode === 'config-form'`,

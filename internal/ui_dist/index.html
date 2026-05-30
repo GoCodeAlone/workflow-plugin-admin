@@ -367,6 +367,7 @@
     const categoryCount = document.getElementById('category-count');
     const activeSurface = document.getElementById('active-surface');
     const tokenStorageKey = shell.dataset.tokenStorageKey || 'workflow.admin.token';
+    const adminToolFrames = new WeakMap();
 
     function storedToken() {
       try {
@@ -412,6 +413,14 @@
       return false;
     }
 
+    function adminToolGrants(sourceWindow) {
+      const surface = adminToolFrames.get(sourceWindow);
+      if (!surface || !Array.isArray(surface.permissions)) return [];
+      return surface.permissions
+        .map(permission => permission && permission.permission)
+        .filter(permission => typeof permission === 'string' && permission);
+    }
+
     window.addEventListener('message', event => {
       const message = event.data || {};
       if (message.type !== 'workflow.admin.auth.request') return;
@@ -420,7 +429,8 @@
       event.source.postMessage({
         type: 'workflow.admin.auth.response',
         requestId: message.requestId || '',
-        token: storedToken()
+        token: storedToken(),
+        grantedScopes: adminToolGrants(event.source)
       }, event.origin);
     });
 
@@ -654,6 +664,7 @@
         actions.appendChild(link);
         list.className = '';
         list.replaceChildren(actions, frame);
+        if (frame.contentWindow) adminToolFrames.set(frame.contentWindow, surface);
         return;
       }
       const details = document.createElement('div');
