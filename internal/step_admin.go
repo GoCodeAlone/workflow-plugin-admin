@@ -22,10 +22,21 @@ func newAdminStep(method string, config map[string]any) *adminStep {
 	return &adminStep{method: method, module: module}
 }
 
-func (s *adminStep) Execute(_ context.Context, _ map[string]any, _ map[string]map[string]any, current map[string]any, _ map[string]any, config map[string]any) (*sdk.StepResult, error) {
+func (s *adminStep) Execute(_ context.Context, _ map[string]any, stepOutputs map[string]map[string]any, current map[string]any, _ map[string]any, config map[string]any) (*sdk.StepResult, error) {
 	args := mergeMaps(config, current)
 	if args["module"] == nil {
 		args["module"] = s.module
+	}
+	if s.method == "ListContributions" && args["contributions"] == nil {
+		contributions := make([]any, 0)
+		for _, stepName := range stringSliceValue(args, "contribution_steps") {
+			if contribution := stepOutputs[stepName]["contribution"]; contribution != nil {
+				contributions = append(contributions, contribution)
+			}
+		}
+		if len(contributions) > 0 {
+			args["contributions"] = contributions
+		}
 	}
 	moduleName := stringValue(args, "module")
 	module, err := lookupDashboardModule(moduleName)
@@ -58,11 +69,15 @@ func typedRegisterContribution(ctx context.Context, req sdk.TypedStepRequest[*co
 	if err != nil {
 		return nil, err
 	}
-	if err := module.registry.register(req.Input.GetContribution()); err != nil {
+	contribution := req.Input.GetContribution()
+	if contribution == nil {
+		contribution = contributionFromMap(req.Current)
+	}
+	if err := module.registry.register(contribution); err != nil {
 		return &sdk.TypedStepResult[*contracts.RegisterContributionOutput]{Output: &contracts.RegisterContributionOutput{Error: err.Error()}}, nil
 	}
 	return &sdk.TypedStepResult[*contracts.RegisterContributionOutput]{
-		Output: &contracts.RegisterContributionOutput{Registered: true, Contribution: req.Input.GetContribution()},
+		Output: &contracts.RegisterContributionOutput{Registered: true, Contribution: contribution},
 	}, nil
 }
 
@@ -75,8 +90,16 @@ func typedListContributions(_ context.Context, req sdk.TypedStepRequest[*contrac
 	if err != nil {
 		return nil, err
 	}
+	appContext := req.Input.GetAppContext()
+	if appContext == "" {
+		appContext = stringValue(req.Current, "app_context")
+	}
+	grantedPermissions := req.Input.GetGrantedPermissions()
+	if len(grantedPermissions) == 0 {
+		grantedPermissions = stringSliceValue(req.Current, "granted_permissions")
+	}
 	return &sdk.TypedStepResult[*contracts.ListContributionsOutput]{
-		Output: &contracts.ListContributionsOutput{Contributions: module.registry.listForPermissions(req.Input.GetAppContext(), req.Input.GetGrantedPermissions())},
+		Output: &contracts.ListContributionsOutput{Contributions: module.registry.listForPermissions(appContext, grantedPermissions)},
 	}, nil
 }
 

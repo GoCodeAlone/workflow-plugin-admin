@@ -121,7 +121,10 @@ func (p *adminPlugin) StepTypes() []string {
 }
 
 func (p *adminPlugin) TypedStepTypes() []string {
-	return p.StepTypes()
+	return []string{
+		"step.admin_authorize_action",
+		"step.admin_resource_action",
+	}
 }
 
 func (p *adminPlugin) CreateStep(typeName, _ string, config map[string]any) (sdk.StepInstance, error) {
@@ -142,9 +145,9 @@ func (p *adminPlugin) CreateStep(typeName, _ string, config map[string]any) (sdk
 func (p *adminPlugin) CreateTypedStep(typeName, name string, config *anypb.Any) (sdk.StepInstance, error) {
 	switch typeName {
 	case "step.admin_register_contribution":
-		return sdk.NewTypedStepFactory(typeName, &contracts.AdminStepConfig{}, &contracts.RegisterContributionInput{}, typedRegisterContribution).CreateTypedStep(typeName, name, config)
+		return nil, fmt.Errorf("%w: step type %q", sdk.ErrTypedContractNotHandled, typeName)
 	case "step.admin_list_contributions":
-		return sdk.NewTypedStepFactory(typeName, &contracts.AdminStepConfig{}, &contracts.ListContributionsInput{}, typedListContributions).CreateTypedStep(typeName, name, config)
+		return nil, fmt.Errorf("%w: step type %q", sdk.ErrTypedContractNotHandled, typeName)
 	case "step.admin_authorize_action":
 		return sdk.NewTypedStepFactory(typeName, &contracts.AdminStepConfig{}, &contracts.AuthorizeAdminActionInput{}, typedAuthorizeAction).CreateTypedStep(typeName, name, config)
 	case "step.admin_resource_action":
@@ -163,8 +166,8 @@ func (p *adminPlugin) ContractRegistry() *pb.ContractRegistry {
 		}},
 		Contracts: []*pb.ContractDescriptor{
 			adminModuleContract("admin.dashboard", "AdminDashboardConfig"),
-			adminStepContract("step.admin_register_contribution", "AdminStepConfig", "RegisterContributionInput", "RegisterContributionOutput"),
-			adminStepContract("step.admin_list_contributions", "AdminStepConfig", "ListContributionsInput", "ListContributionsOutput"),
+			adminStepContractWithMode("step.admin_register_contribution", "AdminStepConfig", "RegisterContributionInput", "RegisterContributionOutput", pb.ContractMode_CONTRACT_MODE_PROTO_WITH_LEGACY_STRUCT),
+			adminStepContractWithMode("step.admin_list_contributions", "AdminStepConfig", "ListContributionsInput", "ListContributionsOutput", pb.ContractMode_CONTRACT_MODE_PROTO_WITH_LEGACY_STRUCT),
 			adminStepContract("step.admin_authorize_action", "AdminStepConfig", "AuthorizeAdminActionInput", "AuthorizeAdminActionOutput"),
 			adminStepContract("step.admin_resource_action", "AdminStepConfig", "AdminResourceActionInput", "AdminResourceActionOutput"),
 			adminServiceContract("admin.dashboard", "AdminDashboard", "RegisterContribution", "RegisterContributionInput", "RegisterContributionOutput"),
@@ -186,6 +189,10 @@ func adminModuleContract(moduleType, configMessage string) *pb.ContractDescripto
 }
 
 func adminStepContract(stepType, configMessage, inputMessage, outputMessage string) *pb.ContractDescriptor {
+	return adminStepContractWithMode(stepType, configMessage, inputMessage, outputMessage, pb.ContractMode_CONTRACT_MODE_STRICT_PROTO)
+}
+
+func adminStepContractWithMode(stepType, configMessage, inputMessage, outputMessage string, mode pb.ContractMode) *pb.ContractDescriptor {
 	const pkg = "workflow.plugins.admin.v1."
 	return &pb.ContractDescriptor{
 		Kind:          pb.ContractKind_CONTRACT_KIND_STEP,
@@ -193,7 +200,7 @@ func adminStepContract(stepType, configMessage, inputMessage, outputMessage stri
 		ConfigMessage: pkg + configMessage,
 		InputMessage:  pkg + inputMessage,
 		OutputMessage: pkg + outputMessage,
-		Mode:          pb.ContractMode_CONTRACT_MODE_STRICT_PROTO,
+		Mode:          mode,
 	}
 }
 

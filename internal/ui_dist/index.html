@@ -368,6 +368,7 @@
     const activeSurface = document.getElementById('active-surface');
     const tokenStorageKey = shell.dataset.tokenStorageKey || 'workflow.admin.token';
     const adminToolFrames = new WeakMap();
+    let currentGrantedScopes = [];
 
     function storedToken() {
       try {
@@ -400,6 +401,12 @@
       return headers;
     }
 
+    function scopeStrings(values) {
+      return Array.isArray(values)
+        ? values.filter(value => typeof value === 'string' && value)
+        : [];
+    }
+
     function isAllowedAdminToolSource(sourceWindow) {
       if (!sourceWindow) return false;
       for (const frame of document.querySelectorAll('iframe.surface-frame')) {
@@ -415,10 +422,10 @@
 
     function adminToolGrants(sourceWindow) {
       const surface = adminToolFrames.get(sourceWindow);
+      if (surface && Array.isArray(surface.grantedScopes)) return surface.grantedScopes;
+      if (currentGrantedScopes.length) return currentGrantedScopes;
       if (!surface || !Array.isArray(surface.permissions)) return [];
-      return surface.permissions
-        .map(permission => permission && permission.permission)
-        .filter(permission => typeof permission === 'string' && permission);
+      return scopeStrings(surface.permissions.map(permission => permission && permission.permission));
     }
 
     window.addEventListener('message', event => {
@@ -434,9 +441,12 @@
       }, event.origin);
     });
 
-    function showPanel(id, label) {
+    function showPanel(id, label, selectedItem = null) {
       document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === id));
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.panel === id));
+      document.querySelectorAll('.nav-item').forEach(item => {
+        const active = selectedItem ? item === selectedItem : item.dataset.panel === id;
+        item.classList.toggle('active', active);
+      });
       title.textContent = label;
       activeSurface.textContent = label;
     }
@@ -466,8 +476,17 @@
       item.addEventListener('click', () => showPanel(item.dataset.panel, item.textContent.trim()));
     });
 
-    function renderAdminTools(contributions) {
+    function renderAdminTools(contributions, grantedScopes = []) {
       nav.textContent = '';
+      const fallbackScopes = contributions.flatMap(surface => {
+        const permissions = Array.isArray(surface.permissions) ? surface.permissions : [];
+        return scopeStrings(permissions.map(permission => permission && permission.permission));
+      });
+      const explicitScopes = scopeStrings(grantedScopes);
+      currentGrantedScopes = Array.from(new Set(explicitScopes.length ? explicitScopes : fallbackScopes));
+      contributions.forEach(surface => {
+        surface.grantedScopes = currentGrantedScopes;
+      });
       surfaceCount.textContent = String(contributions.length);
       const categories = Array.from(new Set(contributions.map(surface => surface.category || 'plugin')));
       categoryCount.textContent = String(categories.length);
@@ -494,7 +513,7 @@
             button.className = 'nav-item';
             button.dataset.panel = 'contributions-panel';
             button.textContent = surface.title || surface.id || surface.path || 'Untitled surface';
-            button.addEventListener('click', () => openContribution(surface));
+            button.addEventListener('click', () => openContribution(surface, button));
             nav.appendChild(button);
           });
       });
@@ -636,8 +655,8 @@
       list.replaceChildren(form);
     }
 
-    function openContribution(surface) {
-      showPanel('contributions-panel', surface.title || surface.id || 'Contribution');
+    function openContribution(surface, selectedItem = null) {
+      showPanel('contributions-panel', surface.title || surface.id || 'Contribution', selectedItem);
       if (surface.render_mode === 'config-form') {
         list.className = 'empty';
         list.textContent = 'Loading configuration...';
@@ -688,10 +707,10 @@
         }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        renderAdminTools(payload.contributions || []);
+        renderAdminTools(payload.contributions || [], payload.granted_permissions || payload.grantedPermissions || []);
         status.textContent = 'Admin tools loaded';
       } catch (error) {
-        renderAdminTools([]);
+        renderAdminTools([], []);
         status.textContent = 'Offline fallback';
       }
     }

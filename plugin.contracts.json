@@ -10,7 +10,7 @@
     {
       "kind": "step",
       "type": "step.admin_register_contribution",
-      "mode": "strict",
+      "mode": "proto_with_legacy_struct",
       "config": "workflow.plugins.admin.v1.AdminStepConfig",
       "input": "workflow.plugins.admin.v1.RegisterContributionInput",
       "output": "workflow.plugins.admin.v1.RegisterContributionOutput"
@@ -18,7 +18,7 @@
     {
       "kind": "step",
       "type": "step.admin_list_contributions",
-      "mode": "strict",
+      "mode": "proto_with_legacy_struct",
       "config": "workflow.plugins.admin.v1.AdminStepConfig",
       "input": "workflow.plugins.admin.v1.ListContributionsInput",
       "output": "workflow.plugins.admin.v1.ListContributionsOutput"
@@ -77,4 +77,3 @@
     }
   ]
 }
-

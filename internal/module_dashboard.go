@@ -78,8 +78,21 @@ func (m *dashboardModule) InvokeMethod(method string, args map[string]any) (map[
 		}, nil
 	case "ListContributions":
 		appContext, _ := args["app_context"].(string)
-		contributions := m.registry.listForPermissions(appContext, stringSliceValue(args, "granted_permissions"))
-		out := make([]map[string]any, 0, len(contributions))
+		grantedPermissions := stringSliceValue(args, "granted_permissions")
+		contributions := contributionListValue(args["contributions"])
+		if len(contributions) == 0 {
+			contributions = contributionListValue([]any{args["auth_contribution"], args["authz_contribution"]})
+		}
+		if len(contributions) == 0 {
+			contributions = m.registry.listForPermissions(appContext, grantedPermissions)
+		} else {
+			grants := make(map[string]struct{}, len(grantedPermissions))
+			for _, permission := range grantedPermissions {
+				grants[permission] = struct{}{}
+			}
+			contributions = filterContributionList(contributions, appContext, grants)
+		}
+		out := make([]any, 0, len(contributions))
 		for _, contribution := range contributions {
 			out = append(out, contributionToMap(contribution))
 		}
@@ -139,6 +152,26 @@ func contributionFromMap(args map[string]any) *contracts.AdminContribution {
 	return contribution
 }
 
+func contributionListValue(value any) []*contracts.AdminContribution {
+	switch items := value.(type) {
+	case []*contracts.AdminContribution:
+		return items
+	case []any:
+		out := make([]*contracts.AdminContribution, 0, len(items))
+		for _, item := range items {
+			switch contribution := item.(type) {
+			case *contracts.AdminContribution:
+				out = append(out, contribution)
+			case map[string]any:
+				out = append(out, contributionFromMap(contribution))
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
 func contributionToMap(contribution *contracts.AdminContribution) map[string]any {
 	if contribution == nil {
 		return nil
@@ -150,10 +183,18 @@ func contributionToMap(contribution *contracts.AdminContribution) map[string]any
 		"path":        contribution.Path,
 		"render_mode": contribution.RenderMode,
 		"app_context": contribution.AppContext,
-		"actions":     append([]string(nil), contribution.Actions...),
+		"actions":     stringAnySlice(contribution.Actions),
 		"permissions": permissionMaps(contribution.Permissions),
 		"metadata":    contributionMetadataMap(contribution),
 	}
+}
+
+func stringAnySlice(values []string) []any {
+	out := make([]any, 0, len(values))
+	for _, value := range values {
+		out = append(out, value)
+	}
+	return out
 }
 
 func contributionMetadataMap(contribution *contracts.AdminContribution) map[string]any {
@@ -191,8 +232,8 @@ func permissionValues(value any) []*contracts.AdminPermission {
 	}
 }
 
-func permissionMaps(permissions []*contracts.AdminPermission) []map[string]any {
-	out := make([]map[string]any, 0, len(permissions))
+func permissionMaps(permissions []*contracts.AdminPermission) []any {
+	out := make([]any, 0, len(permissions))
 	for _, permission := range permissions {
 		out = append(out, map[string]any{
 			"permission": permission.GetPermission(),
