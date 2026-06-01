@@ -401,6 +401,12 @@
       return headers;
     }
 
+    function scopeStrings(values) {
+      return Array.isArray(values)
+        ? values.filter(value => typeof value === 'string' && value)
+        : [];
+    }
+
     function isAllowedAdminToolSource(sourceWindow) {
       if (!sourceWindow) return false;
       for (const frame of document.querySelectorAll('iframe.surface-frame')) {
@@ -419,9 +425,7 @@
       if (surface && Array.isArray(surface.grantedScopes)) return surface.grantedScopes;
       if (currentGrantedScopes.length) return currentGrantedScopes;
       if (!surface || !Array.isArray(surface.permissions)) return [];
-      return surface.permissions
-        .map(permission => permission && permission.permission)
-        .filter(permission => typeof permission === 'string' && permission);
+      return scopeStrings(surface.permissions.map(permission => permission && permission.permission));
     }
 
     window.addEventListener('message', event => {
@@ -476,9 +480,10 @@
       nav.textContent = '';
       const fallbackScopes = contributions.flatMap(surface => {
         const permissions = Array.isArray(surface.permissions) ? surface.permissions : [];
-        return permissions.map(permission => permission && permission.permission).filter(Boolean);
+        return scopeStrings(permissions.map(permission => permission && permission.permission));
       });
-      currentGrantedScopes = Array.from(new Set((grantedScopes.length ? grantedScopes : fallbackScopes).filter(Boolean)));
+      const explicitScopes = scopeStrings(grantedScopes);
+      currentGrantedScopes = Array.from(new Set(explicitScopes.length ? explicitScopes : fallbackScopes));
       contributions.forEach(surface => {
         surface.grantedScopes = currentGrantedScopes;
       });

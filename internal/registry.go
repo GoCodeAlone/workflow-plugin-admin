@@ -50,19 +50,18 @@ func (r *contributionRegistry) list(appContext string) []*contracts.AdminContrib
 }
 
 func (r *contributionRegistry) listForPermissions(appContext string, grantedPermissions []string) []*contracts.AdminContribution {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	grants := make(map[string]struct{}, len(grantedPermissions))
 	for _, permission := range grantedPermissions {
 		grants[permission] = struct{}{}
 	}
 
-	out := make([]*contracts.AdminContribution, 0, len(r.contributions))
+	r.mu.RLock()
+	snapshot := make([]*contracts.AdminContribution, 0, len(r.contributions))
 	for _, contribution := range r.contributions {
-		out = append(out, proto.Clone(contribution).(*contracts.AdminContribution))
+		snapshot = append(snapshot, contribution)
 	}
-	return filterContributionList(out, appContext, grants)
+	r.mu.RUnlock()
+	return filterContributionList(snapshot, appContext, grants)
 }
 
 func filterContributionList(contributions []*contracts.AdminContribution, appContext string, grants map[string]struct{}) []*contracts.AdminContribution {
