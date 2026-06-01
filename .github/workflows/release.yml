@@ -91,12 +91,23 @@ jobs:
           fi
           "${{ runner.temp }}/wfctl-bin/wfctl" plugin verify-capabilities --binary "$BIN" .
 
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish GitHub release
+        if: ${{ success() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --draft=false --repo "${{ github.repository }}"
+
   notify-workflow-registry:
     name: Notify workflow-registry
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: release
+    needs: publish-release
     if: >-
       !github.event.deleted
       && !contains(github.ref_name, '-')
