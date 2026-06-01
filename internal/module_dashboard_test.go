@@ -114,16 +114,20 @@ func TestDashboardModuleServiceInvoker(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListContributions: %v", err)
 	}
-	contributions, ok := listed["contributions"].([]map[string]any)
+	contributions, ok := listed["contributions"].([]any)
 	if !ok {
-		t.Fatalf("contributions type = %T, want []map[string]any", listed["contributions"])
+		t.Fatalf("contributions type = %T, want []any", listed["contributions"])
 	}
-	if len(contributions) != 1 || contributions[0]["id"] != "orders" {
+	first, ok := contributions[0].(map[string]any)
+	if !ok {
+		t.Fatalf("first contribution type = %T, want map[string]any", contributions[0])
+	}
+	if len(contributions) != 1 || first["id"] != "orders" {
 		t.Fatalf("unexpected contributions: %#v", contributions)
 	}
-	metadata, ok := contributions[0]["metadata"].(map[string]any)
+	metadata, ok := first["metadata"].(map[string]any)
 	if !ok {
-		t.Fatalf("metadata type = %T, want map[string]any", contributions[0]["metadata"])
+		t.Fatalf("metadata type = %T, want map[string]any", first["metadata"])
 	}
 	if metadata["validate_path"] != "/api/admin/orders/config/validate" {
 		t.Fatalf("metadata validate_path = %v", metadata["validate_path"])

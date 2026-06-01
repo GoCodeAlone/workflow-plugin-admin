@@ -60,6 +60,17 @@ func (r *contributionRegistry) listForPermissions(appContext string, grantedPerm
 
 	out := make([]*contracts.AdminContribution, 0, len(r.contributions))
 	for _, contribution := range r.contributions {
+		out = append(out, proto.Clone(contribution).(*contracts.AdminContribution))
+	}
+	return filterContributionList(out, appContext, grants)
+}
+
+func filterContributionList(contributions []*contracts.AdminContribution, appContext string, grants map[string]struct{}) []*contracts.AdminContribution {
+	out := make([]*contracts.AdminContribution, 0, len(contributions))
+	for _, contribution := range contributions {
+		if contribution == nil {
+			continue
+		}
 		if appContext != "" && contribution.AppContext != "" && contribution.AppContext != appContext {
 			continue
 		}

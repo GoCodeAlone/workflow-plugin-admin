@@ -27,7 +27,11 @@ func TestAdminPlugin_ContractRegistry(t *testing.T) {
 
 	contracts := make(map[string]*proto.ContractDescriptor, len(registry.Contracts))
 	for _, contract := range registry.Contracts {
-		if contract.Mode != proto.ContractMode_CONTRACT_MODE_STRICT_PROTO {
+		if contractKey(contract) == "step:step.admin_register_contribution" || contractKey(contract) == "step:step.admin_list_contributions" {
+			if contract.Mode != proto.ContractMode_CONTRACT_MODE_PROTO_WITH_LEGACY_STRUCT {
+				t.Fatalf("%s mode = %s, want proto with legacy struct", contractKey(contract), contract.Mode)
+			}
+		} else if contract.Mode != proto.ContractMode_CONTRACT_MODE_STRICT_PROTO {
 			t.Fatalf("%s mode = %s, want strict proto", contractKey(contract), contract.Mode)
 		}
 		key := contractKey(contract)
@@ -60,8 +64,8 @@ func TestAdminPlugin_PluginContractsJSON(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s missing from runtime contracts", key)
 		}
-		if manifest.Config != runtimeContract.ConfigMessage || manifest.Input != runtimeContract.InputMessage || manifest.Output != runtimeContract.OutputMessage {
-			t.Fatalf("%s manifest = %#v, runtime config/input/output = %q/%q/%q", key, manifest, runtimeContract.ConfigMessage, runtimeContract.InputMessage, runtimeContract.OutputMessage)
+		if manifest.Config != runtimeContract.ConfigMessage || manifest.Input != runtimeContract.InputMessage || manifest.Output != runtimeContract.OutputMessage || manifest.Mode != contractModeString(runtimeContract.Mode) {
+			t.Fatalf("%s manifest = %#v, runtime mode/config/input/output = %q/%q/%q/%q", key, manifest, contractModeString(runtimeContract.Mode), runtimeContract.ConfigMessage, runtimeContract.InputMessage, runtimeContract.OutputMessage)
 		}
 	}
 }
@@ -102,6 +106,20 @@ type pluginContract struct {
 	Config string `json:"config"`
 	Input  string `json:"input"`
 	Output string `json:"output"`
+	Mode   string `json:"mode"`
+}
+
+func contractModeString(mode proto.ContractMode) string {
+	switch mode {
+	case proto.ContractMode_CONTRACT_MODE_STRICT_PROTO:
+		return "strict"
+	case proto.ContractMode_CONTRACT_MODE_PROTO_WITH_LEGACY_STRUCT:
+		return "proto_with_legacy_struct"
+	case proto.ContractMode_CONTRACT_MODE_LEGACY_STRUCT:
+		return "legacy_struct"
+	default:
+		return ""
+	}
 }
 
 func readPluginContracts(t *testing.T) map[string]pluginContract {
@@ -121,7 +139,6 @@ func readPluginContracts(t *testing.T) map[string]pluginContract {
 			Type        string `json:"type"`
 			ServiceName string `json:"serviceName"`
 			Method      string `json:"method"`
-			Mode        string `json:"mode"`
 			pluginContract
 		} `json:"contracts"`
 	}
@@ -133,9 +150,6 @@ func readPluginContracts(t *testing.T) map[string]pluginContract {
 	}
 	out := make(map[string]pluginContract, len(manifest.Contracts))
 	for _, contract := range manifest.Contracts {
-		if contract.Mode != "strict" {
-			t.Fatalf("%s mode = %q, want strict", contract.Type, contract.Mode)
-		}
 		var key string
 		switch contract.Kind {
 		case "module":

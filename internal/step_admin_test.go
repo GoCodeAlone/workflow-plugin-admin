@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/GoCodeAlone/workflow-plugin-admin/internal/contracts"
@@ -48,11 +49,15 @@ func TestAdminStepsRegisterListAuthorizeAndDispatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list Execute: %v", err)
 	}
-	contributions, ok := result.Output["contributions"].([]map[string]any)
+	contributions, ok := result.Output["contributions"].([]any)
 	if !ok {
 		t.Fatalf("contributions type = %T", result.Output["contributions"])
 	}
-	if len(contributions) != 1 || contributions[0]["id"] != "orders" {
+	first, ok := contributions[0].(map[string]any)
+	if !ok {
+		t.Fatalf("first contribution type = %T, want map[string]any", contributions[0])
+	}
+	if len(contributions) != 1 || first["id"] != "orders" {
 		t.Fatalf("unexpected contributions: %#v", contributions)
 	}
 
@@ -91,22 +96,66 @@ func TestAdminStepsRegisterListAuthorizeAndDispatch(t *testing.T) {
 	}
 }
 
-func TestAdminTypedStepProviderValidatesConfig(t *testing.T) {
+func TestContributionRegistryStepsUseLegacyExecutionWithTypedContractDescriptors(t *testing.T) {
 	provider := NewAdminPlugin().(sdk.TypedStepProvider)
 
 	goodConfig, err := anypb.New(&contracts.AdminStepConfig{Module: "admin"})
 	if err != nil {
 		t.Fatalf("pack good config: %v", err)
 	}
-	if _, err := provider.CreateTypedStep("step.admin_list_contributions", "list", goodConfig); err != nil {
-		t.Fatalf("CreateTypedStep good config: %v", err)
+	if _, err := provider.CreateTypedStep("step.admin_register_contribution", "register", goodConfig); !errors.Is(err, sdk.ErrTypedContractNotHandled) {
+		t.Fatalf("CreateTypedStep register error = %v, want ErrTypedContractNotHandled", err)
+	}
+	if _, err := provider.CreateTypedStep("step.admin_list_contributions", "list", goodConfig); !errors.Is(err, sdk.ErrTypedContractNotHandled) {
+		t.Fatalf("CreateTypedStep list error = %v, want ErrTypedContractNotHandled", err)
 	}
 
-	wrongConfig, err := anypb.New(&contracts.AdminDashboardConfig{RoutePrefix: "/admin"})
-	if err != nil {
-		t.Fatalf("pack wrong config: %v", err)
+	steps := NewAdminPlugin().(sdk.TypedStepProvider).TypedStepTypes()
+	for _, stepType := range steps {
+		if stepType == "step.admin_register_contribution" || stepType == "step.admin_list_contributions" {
+			t.Fatalf("%s must use the legacy StepInstance path for map-shaped contribution arrays", stepType)
+		}
 	}
-	if _, err := provider.CreateTypedStep("step.admin_list_contributions", "list", wrongConfig); err == nil {
-		t.Fatal("CreateTypedStep accepted wrong config type")
+}
+
+func TestTypedAdminStepsUseCurrentFallbackForWorkflowInputs(t *testing.T) {
+	module := newDashboardModule("admin", &contracts.AdminDashboardConfig{})
+	registerDashboardModule(module)
+
+	registerResult, err := typedRegisterContribution(context.Background(), sdk.TypedStepRequest[*contracts.AdminStepConfig, *contracts.RegisterContributionInput]{
+		Config: &contracts.AdminStepConfig{Module: "admin"},
+		Input:  &contracts.RegisterContributionInput{},
+		Current: map[string]any{
+			"contribution": map[string]any{
+				"id":          "authz-roles",
+				"title":       "Authorization",
+				"path":        "/admin/authz/",
+				"category":    "security",
+				"render_mode": "iframe",
+				"app_context": "admin",
+				"permissions": []any{"admin:authz.roles:read"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("typedRegisterContribution: %v", err)
+	}
+	if !registerResult.Output.GetRegistered() {
+		t.Fatal("typed register did not report registered")
+	}
+
+	listResult, err := typedListContributions(context.Background(), sdk.TypedStepRequest[*contracts.AdminStepConfig, *contracts.ListContributionsInput]{
+		Config: &contracts.AdminStepConfig{Module: "admin"},
+		Input:  &contracts.ListContributionsInput{},
+		Current: map[string]any{
+			"app_context":         "admin",
+			"granted_permissions": []any{"admin:authz.roles:read"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("typedListContributions: %v", err)
+	}
+	if len(listResult.Output.GetContributions()) != 1 || listResult.Output.GetContributions()[0].GetId() != "authz-roles" {
+		t.Fatalf("unexpected typed list output: %#v", listResult.Output.GetContributions())
 	}
 }

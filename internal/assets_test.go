@@ -19,6 +19,7 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`workflow.admin.auth.request`,
 		`workflow.admin.auth.response`,
 		`grantedScopes: adminToolGrants`,
+		`payload.granted_permissions`,
 		`adminToolFrames`,
 		`event.origin !== window.location.origin`,
 		`startsWith('/admin')`,
