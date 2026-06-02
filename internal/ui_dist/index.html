@@ -551,9 +551,11 @@
     function resolveAdminEndpoint(path) {
       const url = new URL(path || '', window.location.origin);
       if (url.origin !== window.location.origin) throw new Error('Admin endpoint must be same-origin.');
+      if (url.username || url.password) throw new Error('Admin endpoint must not include credentials.');
       if (!url.pathname.startsWith('/api/admin/') && url.pathname !== '/api/admin') {
         throw new Error('Admin endpoint must use an admin API route.');
       }
+      url.hash = '';
       return url.href;
     }
 

@@ -30,6 +30,7 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`Apply changes`,
 		`resolveAdminEndpoint`,
 		`same-origin`,
+		`must not include credentials`,
 		`response.ok`,
 		`Expected JSON response`,
 		`Validating changes`,
