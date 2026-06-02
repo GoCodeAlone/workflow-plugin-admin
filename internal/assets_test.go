@@ -26,6 +26,17 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`render_mode === 'config-form'`,
 		`renderConfigForm`,
 		`validate_path`,
+		`apply_path`,
+		`Apply changes`,
+		`resolveAdminEndpoint`,
+		`same-origin`,
+		`must not include credentials`,
+		`response.ok`,
+		`Expected JSON response`,
+		`Validating changes`,
+		`Applying changes`,
+		`Configuration changed during validation`,
+		`data-secret-input`,
 		`fetchConfigDescription`,
 	}
 	for _, needle := range required {

@@ -548,13 +548,43 @@
       return cell;
     }
 
+    function resolveAdminEndpoint(path) {
+      const url = new URL(path || '', window.location.origin);
+      if (url.origin !== window.location.origin) throw new Error('Admin endpoint must be same-origin.');
+      if (url.username || url.password) throw new Error('Admin endpoint must not include credentials.');
+      if (!url.pathname.startsWith('/api/admin/') && url.pathname !== '/api/admin') {
+        throw new Error('Admin endpoint must use an admin API route.');
+      }
+      url.hash = '';
+      return url.href;
+    }
+
+    async function fetchAdminJSON(path, options = {}) {
+      const response = await fetch(resolveAdminEndpoint(path), options);
+      const text = await response.text();
+      if (response.status === 401 || response.status === 403) throw new Error('Not authorized');
+      let payload = {};
+      if (!text) {
+        payload = {};
+      } else {
+        try {
+          payload = JSON.parse(text);
+        } catch (_) {
+          if (response.ok) throw new Error('Expected JSON response from admin endpoint.');
+          payload = { message: text };
+        }
+      }
+      if (!response.ok) {
+        const detail = payload && (payload.error || payload.reason || payload.message);
+        throw new Error(detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`);
+      }
+      return payload;
+    }
+
     async function fetchConfigDescription(surface) {
       const metadata = surface.metadata || {};
       const describePath = metadata.describe_path || surface.path;
-      const response = await fetch(describePath, { headers: authHeaders({ accept: 'application/json' }) });
-      if (response.status === 401 || response.status === 403) throw new Error('Not authorized');
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
+      return fetchAdminJSON(describePath, { headers: authHeaders({ accept: 'application/json' }) });
     }
 
     function renderConfigForm(surface, description) {
@@ -563,6 +593,42 @@
       form.className = 'config-form';
       const draft = { ...(description.effective_config || {}) };
       const groups = Array.isArray(description.groups) ? description.groups : [];
+      let validatedDraft = '';
+      let validationPayload = null;
+
+      function draftSnapshot() {
+        return JSON.stringify(draft);
+      }
+
+      function setBusy(disabled) {
+        for (const control of form.querySelectorAll('input, select, button')) {
+          if (disabled) {
+            if (!control.disabled) control.dataset.busyDisabled = 'true';
+            control.disabled = true;
+          } else if (control.dataset.busyDisabled === 'true') {
+            control.disabled = false;
+            delete control.dataset.busyDisabled;
+          }
+        }
+      }
+
+      async function validateDraft() {
+        const validatePath = metadata.validate_path;
+        if (!validatePath) {
+          throw new Error('This admin tool did not provide a validation endpoint.');
+        }
+        const snapshot = draftSnapshot();
+        const payload = await fetchAdminJSON(validatePath, {
+          method: 'POST',
+          headers: authHeaders({ accept: 'application/json', 'content-type': 'application/json' }),
+          body: JSON.stringify({ desired_config: JSON.parse(snapshot) })
+        });
+        if (snapshot === draftSnapshot()) {
+          validatedDraft = snapshot;
+          validationPayload = payload;
+        }
+        return payload;
+      }
 
       groups.forEach(group => {
         const section = document.createElement('section');
@@ -608,9 +674,13 @@
           input.id = id;
           input.disabled = control.enabled === false;
           input.title = control.help_text || control.description || '';
+          input.dataset.configKey = control.config_key || control.key || '';
+          if (control.secret || control.input_type === 'secret') input.dataset.secretInput = 'true';
           input.addEventListener('change', () => {
             const key = control.config_key || control.key;
             draft[key] = input.type === 'checkbox' ? input.checked : input.value;
+            validatedDraft = '';
+            validationPayload = null;
           });
           wrapper.appendChild(input);
 
@@ -630,6 +700,50 @@
       validate.className = 'primary-button';
       validate.textContent = 'Validate changes';
       actions.appendChild(validate);
+      if (metadata.apply_path) {
+        const apply = document.createElement('button');
+        apply.type = 'button';
+        apply.className = 'secondary-button';
+        apply.textContent = 'Apply changes';
+        actions.appendChild(apply);
+        apply.addEventListener('click', async () => {
+          setBusy(true);
+          try {
+            if (metadata.validate_path) {
+              result.textContent = 'Validating changes...';
+              const snapshot = draftSnapshot();
+              const validation = validatedDraft === draftSnapshot() && validationPayload
+                ? validationPayload
+                : await validateDraft();
+              if (snapshot !== draftSnapshot()) {
+                result.textContent = 'Configuration changed during validation. Review and apply again.';
+                return;
+              }
+              if (validation.valid !== true) {
+                result.textContent = JSON.stringify(validation, null, 2);
+                return;
+              }
+            }
+            result.textContent = 'Applying changes...';
+            const payload = await fetchAdminJSON(metadata.apply_path, {
+              method: 'POST',
+              headers: authHeaders({ accept: 'application/json', 'content-type': 'application/json' }),
+              body: JSON.stringify({ desired_config: draft })
+            });
+            result.textContent = JSON.stringify(payload, null, 2);
+            for (const input of form.querySelectorAll('[data-secret-input="true"]')) {
+              input.value = '';
+              if (input.dataset.configKey) delete draft[input.dataset.configKey];
+            }
+            validatedDraft = '';
+            validationPayload = null;
+          } catch (error) {
+            result.textContent = error.message || 'Unable to apply configuration.';
+          } finally {
+            setBusy(false);
+          }
+        });
+      }
       form.appendChild(actions);
 
       const result = document.createElement('pre');
@@ -638,17 +752,15 @@
       form.appendChild(result);
 
       validate.addEventListener('click', async () => {
-        const validatePath = metadata.validate_path;
-        if (!validatePath) {
-          result.textContent = 'This admin tool did not provide a validation endpoint.';
-          return;
+        setBusy(true);
+        try {
+          result.textContent = 'Validating changes...';
+          result.textContent = JSON.stringify(await validateDraft(), null, 2);
+        } catch (error) {
+          result.textContent = error.message || 'Unable to validate configuration.';
+        } finally {
+          setBusy(false);
         }
-        const response = await fetch(validatePath, {
-          method: 'POST',
-          headers: authHeaders({ accept: 'application/json', 'content-type': 'application/json' }),
-          body: JSON.stringify({ desired_config: draft })
-        });
-        result.textContent = JSON.stringify(await response.json(), null, 2);
       });
 
       list.className = '';
