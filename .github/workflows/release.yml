@@ -98,11 +98,21 @@ jobs:
     needs: [release]
     runs-on: ubuntu-latest
     steps:
-      - name: Publish GitHub release
+      - name: Verify GitHub release is published
         if: ${{ success() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ github.ref_name }}" --draft=false --repo "${{ github.repository }}"
+        run: |
+          set -euo pipefail
+          if ! draft="$(gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" --json isDraft --jq .isDraft)"; then
+            echo "::error::Unable to verify release ${{ github.ref_name }}."
+            exit 1
+          fi
+          if [ "$draft" != "false" ]; then
+            echo "::error::Release ${{ github.ref_name }} is not published. GoReleaser must publish directly; immutable GitHub releases cannot be flipped after upload."
+            exit 1
+          fi
+          echo "Release ${{ github.ref_name }} is published."
 
   notify-workflow-registry:
     name: Notify workflow-registry
