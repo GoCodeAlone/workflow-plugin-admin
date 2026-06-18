@@ -7,8 +7,10 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/GoCodeAlone/workflow-plugin-admin/internal/contracts"
 	"github.com/GoCodeAlone/workflow/plugin/external/proto"
 	sdk "github.com/GoCodeAlone/workflow/plugin/external/sdk"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func TestAdminPlugin_ContractRegistry(t *testing.T) {
@@ -48,6 +50,33 @@ func TestAdminPlugin_ContractRegistry(t *testing.T) {
 	requireContract(t, contracts, "step:step.admin_resource_action", "workflow.plugins.admin.v1.AdminStepConfig", "workflow.plugins.admin.v1.AdminResourceActionInput", "workflow.plugins.admin.v1.AdminResourceActionOutput")
 }
 
+func TestAdminPlugin_ContextSelectorStrictProtoFields(t *testing.T) {
+	messages := contracts.File_internal_contracts_admin_proto.Messages()
+
+	selector := messages.ByName("AdminContextSelector")
+	if selector == nil {
+		t.Fatal("AdminContextSelector missing from strict proto descriptor")
+	}
+	requireField(t, selector, "selected_context_key")
+	requireField(t, selector, "allowed_context_kinds")
+	requireField(t, selector, "launch_url")
+	requireField(t, selector, "switch_permissions")
+
+	contribution := messages.ByName("AdminContribution")
+	if contribution == nil {
+		t.Fatal("AdminContribution missing from strict proto descriptor")
+	}
+	requireField(t, contribution, "context_selector")
+
+	listInput := messages.ByName("ListContributionsInput")
+	if listInput == nil {
+		t.Fatal("ListContributionsInput missing from strict proto descriptor")
+	}
+	requireField(t, listInput, "selected_context_kind")
+	requireField(t, listInput, "selected_context_id")
+	requireField(t, listInput, "context_authorized")
+}
+
 func TestAdminPlugin_PluginContractsJSON(t *testing.T) {
 	provider := NewAdminPlugin().(sdk.ContractProvider)
 	runtimeContracts := make(map[string]*proto.ContractDescriptor)
@@ -67,6 +96,13 @@ func TestAdminPlugin_PluginContractsJSON(t *testing.T) {
 		if manifest.Config != runtimeContract.ConfigMessage || manifest.Input != runtimeContract.InputMessage || manifest.Output != runtimeContract.OutputMessage || manifest.Mode != contractModeString(runtimeContract.Mode) {
 			t.Fatalf("%s manifest = %#v, runtime mode/config/input/output = %q/%q/%q/%q", key, manifest, contractModeString(runtimeContract.Mode), runtimeContract.ConfigMessage, runtimeContract.InputMessage, runtimeContract.OutputMessage)
 		}
+	}
+}
+
+func requireField(t *testing.T, message protoreflect.MessageDescriptor, name protoreflect.Name) {
+	t.Helper()
+	if message.Fields().ByName(name) == nil {
+		t.Fatalf("%s missing field %s", message.FullName(), name)
 	}
 }
 

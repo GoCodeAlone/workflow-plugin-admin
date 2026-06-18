@@ -218,24 +218,93 @@ func (x *AdminPermission) GetPermission() string {
 	return ""
 }
 
+type AdminContextSelector struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	SelectedContextKey  string                 `protobuf:"bytes,1,opt,name=selected_context_key,json=selectedContextKey,proto3" json:"selected_context_key,omitempty"`
+	AllowedContextKinds []string               `protobuf:"bytes,2,rep,name=allowed_context_kinds,json=allowedContextKinds,proto3" json:"allowed_context_kinds,omitempty"`
+	LaunchUrl           string                 `protobuf:"bytes,3,opt,name=launch_url,json=launchUrl,proto3" json:"launch_url,omitempty"`
+	SwitchPermissions   []*AdminPermission     `protobuf:"bytes,4,rep,name=switch_permissions,json=switchPermissions,proto3" json:"switch_permissions,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *AdminContextSelector) Reset() {
+	*x = AdminContextSelector{}
+	mi := &file_internal_contracts_admin_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminContextSelector) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminContextSelector) ProtoMessage() {}
+
+func (x *AdminContextSelector) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_contracts_admin_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminContextSelector.ProtoReflect.Descriptor instead.
+func (*AdminContextSelector) Descriptor() ([]byte, []int) {
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AdminContextSelector) GetSelectedContextKey() string {
+	if x != nil {
+		return x.SelectedContextKey
+	}
+	return ""
+}
+
+func (x *AdminContextSelector) GetAllowedContextKinds() []string {
+	if x != nil {
+		return x.AllowedContextKinds
+	}
+	return nil
+}
+
+func (x *AdminContextSelector) GetLaunchUrl() string {
+	if x != nil {
+		return x.LaunchUrl
+	}
+	return ""
+}
+
+func (x *AdminContextSelector) GetSwitchPermissions() []*AdminPermission {
+	if x != nil {
+		return x.SwitchPermissions
+	}
+	return nil
+}
+
 type AdminContribution struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
-	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	RenderMode    string                 `protobuf:"bytes,5,opt,name=render_mode,json=renderMode,proto3" json:"render_mode,omitempty"`
-	AppContext    string                 `protobuf:"bytes,6,opt,name=app_context,json=appContext,proto3" json:"app_context,omitempty"`
-	Permissions   []*AdminPermission     `protobuf:"bytes,7,rep,name=permissions,proto3" json:"permissions,omitempty"`
-	Metadata      *structpb.Struct       `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	Actions       []string               `protobuf:"bytes,9,rep,name=actions,proto3" json:"actions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title           string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Category        string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	Path            string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	RenderMode      string                 `protobuf:"bytes,5,opt,name=render_mode,json=renderMode,proto3" json:"render_mode,omitempty"`
+	AppContext      string                 `protobuf:"bytes,6,opt,name=app_context,json=appContext,proto3" json:"app_context,omitempty"`
+	Permissions     []*AdminPermission     `protobuf:"bytes,7,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	Metadata        *structpb.Struct       `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Actions         []string               `protobuf:"bytes,9,rep,name=actions,proto3" json:"actions,omitempty"`
+	ContextSelector *AdminContextSelector  `protobuf:"bytes,10,opt,name=context_selector,json=contextSelector,proto3" json:"context_selector,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AdminContribution) Reset() {
 	*x = AdminContribution{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[3]
+	mi := &file_internal_contracts_admin_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -247,7 +316,7 @@ func (x *AdminContribution) String() string {
 func (*AdminContribution) ProtoMessage() {}
 
 func (x *AdminContribution) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[3]
+	mi := &file_internal_contracts_admin_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -260,7 +329,7 @@ func (x *AdminContribution) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminContribution.ProtoReflect.Descriptor instead.
 func (*AdminContribution) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{3}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AdminContribution) GetId() string {
@@ -326,6 +395,13 @@ func (x *AdminContribution) GetActions() []string {
 	return nil
 }
 
+func (x *AdminContribution) GetContextSelector() *AdminContextSelector {
+	if x != nil {
+		return x.ContextSelector
+	}
+	return nil
+}
+
 type RegisterContributionInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Module        string                 `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
@@ -336,7 +412,7 @@ type RegisterContributionInput struct {
 
 func (x *RegisterContributionInput) Reset() {
 	*x = RegisterContributionInput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[4]
+	mi := &file_internal_contracts_admin_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -348,7 +424,7 @@ func (x *RegisterContributionInput) String() string {
 func (*RegisterContributionInput) ProtoMessage() {}
 
 func (x *RegisterContributionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[4]
+	mi := &file_internal_contracts_admin_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -361,7 +437,7 @@ func (x *RegisterContributionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterContributionInput.ProtoReflect.Descriptor instead.
 func (*RegisterContributionInput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{4}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RegisterContributionInput) GetModule() string {
@@ -389,7 +465,7 @@ type RegisterContributionOutput struct {
 
 func (x *RegisterContributionOutput) Reset() {
 	*x = RegisterContributionOutput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[5]
+	mi := &file_internal_contracts_admin_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +477,7 @@ func (x *RegisterContributionOutput) String() string {
 func (*RegisterContributionOutput) ProtoMessage() {}
 
 func (x *RegisterContributionOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[5]
+	mi := &file_internal_contracts_admin_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +490,7 @@ func (x *RegisterContributionOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterContributionOutput.ProtoReflect.Descriptor instead.
 func (*RegisterContributionOutput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{5}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RegisterContributionOutput) GetRegistered() bool {
@@ -439,17 +515,20 @@ func (x *RegisterContributionOutput) GetError() string {
 }
 
 type ListContributionsInput struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Module             string                 `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
-	AppContext         string                 `protobuf:"bytes,2,opt,name=app_context,json=appContext,proto3" json:"app_context,omitempty"`
-	GrantedPermissions []string               `protobuf:"bytes,3,rep,name=granted_permissions,json=grantedPermissions,proto3" json:"granted_permissions,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Module              string                 `protobuf:"bytes,1,opt,name=module,proto3" json:"module,omitempty"`
+	AppContext          string                 `protobuf:"bytes,2,opt,name=app_context,json=appContext,proto3" json:"app_context,omitempty"`
+	GrantedPermissions  []string               `protobuf:"bytes,3,rep,name=granted_permissions,json=grantedPermissions,proto3" json:"granted_permissions,omitempty"`
+	SelectedContextKind string                 `protobuf:"bytes,4,opt,name=selected_context_kind,json=selectedContextKind,proto3" json:"selected_context_kind,omitempty"`
+	SelectedContextId   string                 `protobuf:"bytes,5,opt,name=selected_context_id,json=selectedContextId,proto3" json:"selected_context_id,omitempty"`
+	ContextAuthorized   bool                   `protobuf:"varint,6,opt,name=context_authorized,json=contextAuthorized,proto3" json:"context_authorized,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ListContributionsInput) Reset() {
 	*x = ListContributionsInput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[6]
+	mi := &file_internal_contracts_admin_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -461,7 +540,7 @@ func (x *ListContributionsInput) String() string {
 func (*ListContributionsInput) ProtoMessage() {}
 
 func (x *ListContributionsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[6]
+	mi := &file_internal_contracts_admin_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -474,7 +553,7 @@ func (x *ListContributionsInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListContributionsInput.ProtoReflect.Descriptor instead.
 func (*ListContributionsInput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{6}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListContributionsInput) GetModule() string {
@@ -498,6 +577,27 @@ func (x *ListContributionsInput) GetGrantedPermissions() []string {
 	return nil
 }
 
+func (x *ListContributionsInput) GetSelectedContextKind() string {
+	if x != nil {
+		return x.SelectedContextKind
+	}
+	return ""
+}
+
+func (x *ListContributionsInput) GetSelectedContextId() string {
+	if x != nil {
+		return x.SelectedContextId
+	}
+	return ""
+}
+
+func (x *ListContributionsInput) GetContextAuthorized() bool {
+	if x != nil {
+		return x.ContextAuthorized
+	}
+	return false
+}
+
 type ListContributionsOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Contributions []*AdminContribution   `protobuf:"bytes,1,rep,name=contributions,proto3" json:"contributions,omitempty"`
@@ -508,7 +608,7 @@ type ListContributionsOutput struct {
 
 func (x *ListContributionsOutput) Reset() {
 	*x = ListContributionsOutput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[7]
+	mi := &file_internal_contracts_admin_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -520,7 +620,7 @@ func (x *ListContributionsOutput) String() string {
 func (*ListContributionsOutput) ProtoMessage() {}
 
 func (x *ListContributionsOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[7]
+	mi := &file_internal_contracts_admin_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -533,7 +633,7 @@ func (x *ListContributionsOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListContributionsOutput.ProtoReflect.Descriptor instead.
 func (*ListContributionsOutput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{7}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListContributionsOutput) GetContributions() []*AdminContribution {
@@ -566,7 +666,7 @@ type AuthorizeAdminActionInput struct {
 
 func (x *AuthorizeAdminActionInput) Reset() {
 	*x = AuthorizeAdminActionInput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[8]
+	mi := &file_internal_contracts_admin_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -578,7 +678,7 @@ func (x *AuthorizeAdminActionInput) String() string {
 func (*AuthorizeAdminActionInput) ProtoMessage() {}
 
 func (x *AuthorizeAdminActionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[8]
+	mi := &file_internal_contracts_admin_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -591,7 +691,7 @@ func (x *AuthorizeAdminActionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeAdminActionInput.ProtoReflect.Descriptor instead.
 func (*AuthorizeAdminActionInput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{8}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AuthorizeAdminActionInput) GetModule() string {
@@ -664,7 +764,7 @@ type AuthorizeAdminActionOutput struct {
 
 func (x *AuthorizeAdminActionOutput) Reset() {
 	*x = AuthorizeAdminActionOutput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[9]
+	mi := &file_internal_contracts_admin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -676,7 +776,7 @@ func (x *AuthorizeAdminActionOutput) String() string {
 func (*AuthorizeAdminActionOutput) ProtoMessage() {}
 
 func (x *AuthorizeAdminActionOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[9]
+	mi := &file_internal_contracts_admin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -689,7 +789,7 @@ func (x *AuthorizeAdminActionOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeAdminActionOutput.ProtoReflect.Descriptor instead.
 func (*AuthorizeAdminActionOutput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{9}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AuthorizeAdminActionOutput) GetAllowed() bool {
@@ -751,7 +851,7 @@ type AdminResourceActionInput struct {
 
 func (x *AdminResourceActionInput) Reset() {
 	*x = AdminResourceActionInput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[10]
+	mi := &file_internal_contracts_admin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -763,7 +863,7 @@ func (x *AdminResourceActionInput) String() string {
 func (*AdminResourceActionInput) ProtoMessage() {}
 
 func (x *AdminResourceActionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[10]
+	mi := &file_internal_contracts_admin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -776,7 +876,7 @@ func (x *AdminResourceActionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminResourceActionInput.ProtoReflect.Descriptor instead.
 func (*AdminResourceActionInput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{10}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AdminResourceActionInput) GetModule() string {
@@ -854,7 +954,7 @@ type AdminActionResult struct {
 
 func (x *AdminActionResult) Reset() {
 	*x = AdminActionResult{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[11]
+	mi := &file_internal_contracts_admin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -866,7 +966,7 @@ func (x *AdminActionResult) String() string {
 func (*AdminActionResult) ProtoMessage() {}
 
 func (x *AdminActionResult) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[11]
+	mi := &file_internal_contracts_admin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -879,7 +979,7 @@ func (x *AdminActionResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminActionResult.ProtoReflect.Descriptor instead.
 func (*AdminActionResult) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{11}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AdminActionResult) GetAccepted() bool {
@@ -920,7 +1020,7 @@ type AdminResourceActionOutput struct {
 
 func (x *AdminResourceActionOutput) Reset() {
 	*x = AdminResourceActionOutput{}
-	mi := &file_internal_contracts_admin_proto_msgTypes[12]
+	mi := &file_internal_contracts_admin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -932,7 +1032,7 @@ func (x *AdminResourceActionOutput) String() string {
 func (*AdminResourceActionOutput) ProtoMessage() {}
 
 func (x *AdminResourceActionOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_contracts_admin_proto_msgTypes[12]
+	mi := &file_internal_contracts_admin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -945,7 +1045,7 @@ func (x *AdminResourceActionOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminResourceActionOutput.ProtoReflect.Descriptor instead.
 func (*AdminResourceActionOutput) Descriptor() ([]byte, []int) {
-	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{12}
+	return file_internal_contracts_admin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AdminResourceActionOutput) GetResult() *AdminActionResult {
@@ -985,7 +1085,13 @@ const file_internal_contracts_admin_proto_rawDesc = "" +
 	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1e\n" +
 	"\n" +
 	"permission\x18\x03 \x01(\tR\n" +
-	"permission\"\xc8\x02\n" +
+	"permission\"\xf6\x01\n" +
+	"\x14AdminContextSelector\x120\n" +
+	"\x14selected_context_key\x18\x01 \x01(\tR\x12selectedContextKey\x122\n" +
+	"\x15allowed_context_kinds\x18\x02 \x03(\tR\x13allowedContextKinds\x12\x1d\n" +
+	"\n" +
+	"launch_url\x18\x03 \x01(\tR\tlaunchUrl\x12Y\n" +
+	"\x12switch_permissions\x18\x04 \x03(\v2*.workflow.plugins.admin.v1.AdminPermissionR\x11switchPermissions\"\xa4\x03\n" +
 	"\x11AdminContribution\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
@@ -997,7 +1103,9 @@ const file_internal_contracts_admin_proto_rawDesc = "" +
 	"appContext\x12L\n" +
 	"\vpermissions\x18\a \x03(\v2*.workflow.plugins.admin.v1.AdminPermissionR\vpermissions\x123\n" +
 	"\bmetadata\x18\b \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12\x18\n" +
-	"\aactions\x18\t \x03(\tR\aactions\"\x85\x01\n" +
+	"\aactions\x18\t \x03(\tR\aactions\x12Z\n" +
+	"\x10context_selector\x18\n" +
+	" \x01(\v2/.workflow.plugins.admin.v1.AdminContextSelectorR\x0fcontextSelector\"\x85\x01\n" +
 	"\x19RegisterContributionInput\x12\x16\n" +
 	"\x06module\x18\x01 \x01(\tR\x06module\x12P\n" +
 	"\fcontribution\x18\x02 \x01(\v2,.workflow.plugins.admin.v1.AdminContributionR\fcontribution\"\xa4\x01\n" +
@@ -1006,12 +1114,15 @@ const file_internal_contracts_admin_proto_rawDesc = "" +
 	"registered\x18\x01 \x01(\bR\n" +
 	"registered\x12P\n" +
 	"\fcontribution\x18\x02 \x01(\v2,.workflow.plugins.admin.v1.AdminContributionR\fcontribution\x12\x14\n" +
-	"\x05error\x18d \x01(\tR\x05error\"\x82\x01\n" +
+	"\x05error\x18d \x01(\tR\x05error\"\x95\x02\n" +
 	"\x16ListContributionsInput\x12\x16\n" +
 	"\x06module\x18\x01 \x01(\tR\x06module\x12\x1f\n" +
 	"\vapp_context\x18\x02 \x01(\tR\n" +
 	"appContext\x12/\n" +
-	"\x13granted_permissions\x18\x03 \x03(\tR\x12grantedPermissions\"\x83\x01\n" +
+	"\x13granted_permissions\x18\x03 \x03(\tR\x12grantedPermissions\x122\n" +
+	"\x15selected_context_kind\x18\x04 \x01(\tR\x13selectedContextKind\x12.\n" +
+	"\x13selected_context_id\x18\x05 \x01(\tR\x11selectedContextId\x12-\n" +
+	"\x12context_authorized\x18\x06 \x01(\bR\x11contextAuthorized\"\x83\x01\n" +
 	"\x17ListContributionsOutput\x12R\n" +
 	"\rcontributions\x18\x01 \x03(\v2,.workflow.plugins.admin.v1.AdminContributionR\rcontributions\x12\x14\n" +
 	"\x05error\x18d \x01(\tR\x05error\"\x9d\x02\n" +
@@ -1064,37 +1175,40 @@ func file_internal_contracts_admin_proto_rawDescGZIP() []byte {
 	return file_internal_contracts_admin_proto_rawDescData
 }
 
-var file_internal_contracts_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_internal_contracts_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_internal_contracts_admin_proto_goTypes = []any{
 	(*AdminDashboardConfig)(nil),       // 0: workflow.plugins.admin.v1.AdminDashboardConfig
 	(*AdminStepConfig)(nil),            // 1: workflow.plugins.admin.v1.AdminStepConfig
 	(*AdminPermission)(nil),            // 2: workflow.plugins.admin.v1.AdminPermission
-	(*AdminContribution)(nil),          // 3: workflow.plugins.admin.v1.AdminContribution
-	(*RegisterContributionInput)(nil),  // 4: workflow.plugins.admin.v1.RegisterContributionInput
-	(*RegisterContributionOutput)(nil), // 5: workflow.plugins.admin.v1.RegisterContributionOutput
-	(*ListContributionsInput)(nil),     // 6: workflow.plugins.admin.v1.ListContributionsInput
-	(*ListContributionsOutput)(nil),    // 7: workflow.plugins.admin.v1.ListContributionsOutput
-	(*AuthorizeAdminActionInput)(nil),  // 8: workflow.plugins.admin.v1.AuthorizeAdminActionInput
-	(*AuthorizeAdminActionOutput)(nil), // 9: workflow.plugins.admin.v1.AuthorizeAdminActionOutput
-	(*AdminResourceActionInput)(nil),   // 10: workflow.plugins.admin.v1.AdminResourceActionInput
-	(*AdminActionResult)(nil),          // 11: workflow.plugins.admin.v1.AdminActionResult
-	(*AdminResourceActionOutput)(nil),  // 12: workflow.plugins.admin.v1.AdminResourceActionOutput
-	(*structpb.Struct)(nil),            // 13: google.protobuf.Struct
+	(*AdminContextSelector)(nil),       // 3: workflow.plugins.admin.v1.AdminContextSelector
+	(*AdminContribution)(nil),          // 4: workflow.plugins.admin.v1.AdminContribution
+	(*RegisterContributionInput)(nil),  // 5: workflow.plugins.admin.v1.RegisterContributionInput
+	(*RegisterContributionOutput)(nil), // 6: workflow.plugins.admin.v1.RegisterContributionOutput
+	(*ListContributionsInput)(nil),     // 7: workflow.plugins.admin.v1.ListContributionsInput
+	(*ListContributionsOutput)(nil),    // 8: workflow.plugins.admin.v1.ListContributionsOutput
+	(*AuthorizeAdminActionInput)(nil),  // 9: workflow.plugins.admin.v1.AuthorizeAdminActionInput
+	(*AuthorizeAdminActionOutput)(nil), // 10: workflow.plugins.admin.v1.AuthorizeAdminActionOutput
+	(*AdminResourceActionInput)(nil),   // 11: workflow.plugins.admin.v1.AdminResourceActionInput
+	(*AdminActionResult)(nil),          // 12: workflow.plugins.admin.v1.AdminActionResult
+	(*AdminResourceActionOutput)(nil),  // 13: workflow.plugins.admin.v1.AdminResourceActionOutput
+	(*structpb.Struct)(nil),            // 14: google.protobuf.Struct
 }
 var file_internal_contracts_admin_proto_depIdxs = []int32{
-	2,  // 0: workflow.plugins.admin.v1.AdminContribution.permissions:type_name -> workflow.plugins.admin.v1.AdminPermission
-	13, // 1: workflow.plugins.admin.v1.AdminContribution.metadata:type_name -> google.protobuf.Struct
-	3,  // 2: workflow.plugins.admin.v1.RegisterContributionInput.contribution:type_name -> workflow.plugins.admin.v1.AdminContribution
-	3,  // 3: workflow.plugins.admin.v1.RegisterContributionOutput.contribution:type_name -> workflow.plugins.admin.v1.AdminContribution
-	3,  // 4: workflow.plugins.admin.v1.ListContributionsOutput.contributions:type_name -> workflow.plugins.admin.v1.AdminContribution
-	13, // 5: workflow.plugins.admin.v1.AdminResourceActionInput.payload:type_name -> google.protobuf.Struct
-	13, // 6: workflow.plugins.admin.v1.AdminActionResult.output:type_name -> google.protobuf.Struct
-	11, // 7: workflow.plugins.admin.v1.AdminResourceActionOutput.result:type_name -> workflow.plugins.admin.v1.AdminActionResult
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	2,  // 0: workflow.plugins.admin.v1.AdminContextSelector.switch_permissions:type_name -> workflow.plugins.admin.v1.AdminPermission
+	2,  // 1: workflow.plugins.admin.v1.AdminContribution.permissions:type_name -> workflow.plugins.admin.v1.AdminPermission
+	14, // 2: workflow.plugins.admin.v1.AdminContribution.metadata:type_name -> google.protobuf.Struct
+	3,  // 3: workflow.plugins.admin.v1.AdminContribution.context_selector:type_name -> workflow.plugins.admin.v1.AdminContextSelector
+	4,  // 4: workflow.plugins.admin.v1.RegisterContributionInput.contribution:type_name -> workflow.plugins.admin.v1.AdminContribution
+	4,  // 5: workflow.plugins.admin.v1.RegisterContributionOutput.contribution:type_name -> workflow.plugins.admin.v1.AdminContribution
+	4,  // 6: workflow.plugins.admin.v1.ListContributionsOutput.contributions:type_name -> workflow.plugins.admin.v1.AdminContribution
+	14, // 7: workflow.plugins.admin.v1.AdminResourceActionInput.payload:type_name -> google.protobuf.Struct
+	14, // 8: workflow.plugins.admin.v1.AdminActionResult.output:type_name -> google.protobuf.Struct
+	12, // 9: workflow.plugins.admin.v1.AdminResourceActionOutput.result:type_name -> workflow.plugins.admin.v1.AdminActionResult
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_internal_contracts_admin_proto_init() }
@@ -1108,7 +1222,7 @@ func file_internal_contracts_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_contracts_admin_proto_rawDesc), len(file_internal_contracts_admin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
