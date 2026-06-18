@@ -103,9 +103,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          draft="$(gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" --json isDraft --jq .isDraft)"
-          if [ "$draft" = "true" ]; then
-            echo "::error::Release ${{ github.ref_name }} is still draft. GoReleaser must publish directly; immutable GitHub releases cannot be flipped after upload."
+          set -euo pipefail
+          if ! draft="$(gh release view "${{ github.ref_name }}" --repo "${{ github.repository }}" --json isDraft --jq .isDraft)"; then
+            echo "::error::Unable to verify release ${{ github.ref_name }}."
+            exit 1
+          fi
+          if [ "$draft" != "false" ]; then
+            echo "::error::Release ${{ github.ref_name }} is not published. GoReleaser must publish directly; immutable GitHub releases cannot be flipped after upload."
             exit 1
           fi
           echo "Release ${{ github.ref_name }} is published."
