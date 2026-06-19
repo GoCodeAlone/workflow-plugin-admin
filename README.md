@@ -12,6 +12,8 @@ surfaces.
 - Lists contributed surfaces with `step.admin_list_contributions`.
 - Enforces default-deny admin action behavior with
   `step.admin_authorize_action` and upstream authz evidence.
+- Carries optional site/tenant context-selector metadata so contributed admin
+  tools can be filtered to the selected authorized context.
 - Provides a static admin shell that can render built-in identity,
   authorization, and contribution panels.
 - Advertises module, step, and service-method contracts through
@@ -21,6 +23,13 @@ Authentication and authorization are intentionally composed with other Workflow
 plugins. Use `auth.jwt` or another auth plugin for identity, then run
 `workflow-plugin-authz` steps before admin action/list steps. Admin consumes the
 authorization evidence and denies missing evidence by default.
+
+Context-aware contributions set `context_selector` with a
+`selected_context_key`, allowed context kinds, optional launch URL, and switch
+permissions. `ListContributions` only returns those contributions when the
+caller supplies trusted server-side context evidence via `context_authorized`,
+`selected_context_kind`, `selected_context_id`, and matching granted
+permissions. Client-selected tenant/site IDs are display context, not authority.
 
 ## Contracts
 
@@ -111,4 +120,3 @@ The install target copies the plugin binary, `plugin.json`,
 `internal/ui_dist/index.html` contains the embedded admin shell. It fetches
 contributions from `/api/admin/contributions` by default; compose that endpoint
 with Workflow routes/pipelines backed by admin steps and auth/authz checks.
-

@@ -26,6 +26,13 @@ message AdminPermission {
   string permission = 3;
 }
 
+message AdminContextSelector {
+  string selected_context_key = 1;
+  repeated string allowed_context_kinds = 2;
+  string launch_url = 3;
+  repeated AdminPermission switch_permissions = 4;
+}
+
 message AdminContribution {
   string id = 1;
   string title = 2;
@@ -36,6 +43,7 @@ message AdminContribution {
   repeated AdminPermission permissions = 7;
   google.protobuf.Struct metadata = 8;
   repeated string actions = 9;
+  AdminContextSelector context_selector = 10;
 }
 
 message RegisterContributionInput {
@@ -53,6 +61,9 @@ message ListContributionsInput {
   string module = 1;
   string app_context = 2;
   repeated string granted_permissions = 3;
+  string selected_context_kind = 4;
+  string selected_context_id = 5;
+  bool context_authorized = 6;
 }
 
 message ListContributionsOutput {
@@ -103,4 +114,3 @@ message AdminResourceActionOutput {
   AdminActionResult result = 1;
   string error = 100;
 }
-

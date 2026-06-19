@@ -18,6 +18,14 @@ type contributionRegistry struct {
 	contributions map[string]*contracts.AdminContribution
 }
 
+type contributionListRequest struct {
+	AppContext          string
+	SelectedContextKind string
+	SelectedContextID   string
+	ContextAuthorized   bool
+	GrantedPermissions  []string
+}
+
 func newContributionRegistry() *contributionRegistry {
 	return &contributionRegistry{contributions: make(map[string]*contracts.AdminContribution)}
 }
@@ -50,27 +58,34 @@ func (r *contributionRegistry) list(appContext string) []*contracts.AdminContrib
 }
 
 func (r *contributionRegistry) listForPermissions(appContext string, grantedPermissions []string) []*contracts.AdminContribution {
-	grants := make(map[string]struct{}, len(grantedPermissions))
-	for _, permission := range grantedPermissions {
-		grants[permission] = struct{}{}
-	}
+	return r.listForRequest(contributionListRequest{AppContext: appContext, GrantedPermissions: grantedPermissions})
+}
 
+func (r *contributionRegistry) listForRequest(request contributionListRequest) []*contracts.AdminContribution {
 	r.mu.RLock()
 	snapshot := make([]*contracts.AdminContribution, 0, len(r.contributions))
 	for _, contribution := range r.contributions {
 		snapshot = append(snapshot, contribution)
 	}
 	r.mu.RUnlock()
-	return filterContributionList(snapshot, appContext, grants)
+	return filterContributionList(snapshot, request)
 }
 
-func filterContributionList(contributions []*contracts.AdminContribution, appContext string, grants map[string]struct{}) []*contracts.AdminContribution {
+func filterContributionList(contributions []*contracts.AdminContribution, request contributionListRequest) []*contracts.AdminContribution {
+	grants := make(map[string]struct{}, len(request.GrantedPermissions))
+	for _, permission := range request.GrantedPermissions {
+		grants[permission] = struct{}{}
+	}
+
 	out := make([]*contracts.AdminContribution, 0, len(contributions))
 	for _, contribution := range contributions {
 		if contribution == nil {
 			continue
 		}
-		if appContext != "" && contribution.AppContext != "" && contribution.AppContext != appContext {
+		if request.AppContext != "" && contribution.AppContext != "" && contribution.AppContext != request.AppContext {
+			continue
+		}
+		if !contextSelectorVisible(contribution.GetContextSelector(), request, grants) {
 			continue
 		}
 		if !contributionVisible(contribution, grants) {
@@ -87,11 +102,47 @@ func filterContributionList(contributions []*contracts.AdminContribution, appCon
 	return out
 }
 
-func contributionVisible(contribution *contracts.AdminContribution, grants map[string]struct{}) bool {
-	if len(contribution.GetPermissions()) == 0 {
+func contextSelectorVisible(selector *contracts.AdminContextSelector, request contributionListRequest, grants map[string]struct{}) bool {
+	if selector == nil {
 		return true
 	}
-	for _, permission := range contribution.GetPermissions() {
+	if !request.ContextAuthorized {
+		return false
+	}
+	if selector.GetSelectedContextKey() != "" && request.SelectedContextID == "" {
+		return false
+	}
+	allowedKinds := selector.GetAllowedContextKinds()
+	if len(allowedKinds) > 0 {
+		if request.SelectedContextKind == "" {
+			return false
+		}
+		found := false
+		for _, kind := range allowedKinds {
+			if kind == request.SelectedContextKind {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	if len(selector.GetSwitchPermissions()) > 0 && !permissionsVisible(selector.GetSwitchPermissions(), grants) {
+		return false
+	}
+	return true
+}
+
+func contributionVisible(contribution *contracts.AdminContribution, grants map[string]struct{}) bool {
+	return permissionsVisible(contribution.GetPermissions(), grants)
+}
+
+func permissionsVisible(permissions []*contracts.AdminPermission, grants map[string]struct{}) bool {
+	if len(permissions) == 0 {
+		return true
+	}
+	for _, permission := range permissions {
 		if _, ok := grants[permission.GetPermission()]; ok && permission.GetPermission() != "" {
 			return true
 		}

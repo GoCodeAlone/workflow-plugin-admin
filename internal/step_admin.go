@@ -98,8 +98,26 @@ func typedListContributions(_ context.Context, req sdk.TypedStepRequest[*contrac
 	if len(grantedPermissions) == 0 {
 		grantedPermissions = stringSliceValue(req.Current, "granted_permissions")
 	}
+	selectedContextKind := req.Input.GetSelectedContextKind()
+	if selectedContextKind == "" {
+		selectedContextKind = stringValue(req.Current, "selected_context_kind")
+	}
+	selectedContextID := req.Input.GetSelectedContextId()
+	if selectedContextID == "" {
+		selectedContextID = stringValue(req.Current, "selected_context_id")
+	}
+	contextAuthorized := req.Input.GetContextAuthorized()
+	if !contextAuthorized {
+		contextAuthorized = boolValue(req.Current, "context_authorized")
+	}
 	return &sdk.TypedStepResult[*contracts.ListContributionsOutput]{
-		Output: &contracts.ListContributionsOutput{Contributions: module.registry.listForPermissions(appContext, grantedPermissions)},
+		Output: &contracts.ListContributionsOutput{Contributions: module.registry.listForRequest(contributionListRequest{
+			AppContext:          appContext,
+			SelectedContextKind: selectedContextKind,
+			SelectedContextID:   selectedContextID,
+			ContextAuthorized:   contextAuthorized,
+			GrantedPermissions:  grantedPermissions,
+		})},
 	}, nil
 }
 

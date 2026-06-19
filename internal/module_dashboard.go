@@ -77,20 +77,21 @@ func (m *dashboardModule) InvokeMethod(method string, args map[string]any) (map[
 			"contribution": contributionToMap(contribution),
 		}, nil
 	case "ListContributions":
-		appContext, _ := args["app_context"].(string)
-		grantedPermissions := stringSliceValue(args, "granted_permissions")
+		request := contributionListRequest{
+			AppContext:          stringValue(args, "app_context"),
+			SelectedContextKind: stringValue(args, "selected_context_kind"),
+			SelectedContextID:   stringValue(args, "selected_context_id"),
+			ContextAuthorized:   boolValue(args, "context_authorized"),
+			GrantedPermissions:  stringSliceValue(args, "granted_permissions"),
+		}
 		contributions := contributionListValue(args["contributions"])
 		if len(contributions) == 0 {
 			contributions = contributionListValue([]any{args["auth_contribution"], args["authz_contribution"]})
 		}
 		if len(contributions) == 0 {
-			contributions = m.registry.listForPermissions(appContext, grantedPermissions)
+			contributions = m.registry.listForRequest(request)
 		} else {
-			grants := make(map[string]struct{}, len(grantedPermissions))
-			for _, permission := range grantedPermissions {
-				grants[permission] = struct{}{}
-			}
-			contributions = filterContributionList(contributions, appContext, grants)
+			contributions = filterContributionList(contributions, request)
 		}
 		out := make([]any, 0, len(contributions))
 		for _, contribution := range contributions {
@@ -141,6 +142,9 @@ func contributionFromMap(args map[string]any) *contracts.AdminContribution {
 		AppContext: stringValue(args, "app_context"),
 		Actions:    stringSliceValue(args, "actions"),
 	}
+	if selector := contextSelectorValue(args["context_selector"]); selector != nil {
+		contribution.ContextSelector = selector
+	}
 	if metadata := mapValue(args, "metadata"); len(metadata) > 0 {
 		if pbMetadata, err := structpb.NewStruct(metadata); err == nil {
 			contribution.Metadata = pbMetadata
@@ -176,7 +180,7 @@ func contributionToMap(contribution *contracts.AdminContribution) map[string]any
 	if contribution == nil {
 		return nil
 	}
-	return map[string]any{
+	out := map[string]any{
 		"id":          contribution.Id,
 		"title":       contribution.Title,
 		"category":    contribution.Category,
@@ -187,6 +191,10 @@ func contributionToMap(contribution *contracts.AdminContribution) map[string]any
 		"permissions": permissionMaps(contribution.Permissions),
 		"metadata":    contributionMetadataMap(contribution),
 	}
+	if contribution.ContextSelector != nil {
+		out["context_selector"] = contextSelectorMap(contribution.ContextSelector)
+	}
+	return out
 }
 
 func stringAnySlice(values []string) []any {
@@ -224,6 +232,13 @@ func permissionValues(value any) []*contracts.AdminPermission {
 					Resource:   stringValue(permission, "resource"),
 					Action:     stringValue(permission, "action"),
 				})
+			case map[any]any:
+				permissionMap := stringMapValue(permission)
+				out = append(out, &contracts.AdminPermission{
+					Permission: stringValue(permissionMap, "permission"),
+					Resource:   stringValue(permissionMap, "resource"),
+					Action:     stringValue(permissionMap, "action"),
+				})
 			}
 		}
 		return out
@@ -244,6 +259,31 @@ func permissionMaps(permissions []*contracts.AdminPermission) []any {
 	return out
 }
 
+func contextSelectorValue(value any) *contracts.AdminContextSelector {
+	selectorMap := stringMapValue(value)
+	if selectorMap == nil {
+		return nil
+	}
+	return &contracts.AdminContextSelector{
+		SelectedContextKey:  stringValue(selectorMap, "selected_context_key"),
+		AllowedContextKinds: stringSliceValue(selectorMap, "allowed_context_kinds"),
+		LaunchUrl:           stringValue(selectorMap, "launch_url"),
+		SwitchPermissions:   permissionValues(selectorMap["switch_permissions"]),
+	}
+}
+
+func contextSelectorMap(selector *contracts.AdminContextSelector) map[string]any {
+	if selector == nil {
+		return nil
+	}
+	return map[string]any{
+		"selected_context_key":  selector.GetSelectedContextKey(),
+		"allowed_context_kinds": stringAnySlice(selector.GetAllowedContextKinds()),
+		"launch_url":            selector.GetLaunchUrl(),
+		"switch_permissions":    permissionMaps(selector.GetSwitchPermissions()),
+	}
+}
+
 func authorizeFromEvidence(args map[string]any) (bool, string) {
 	if checked, _ := args["authz_checked"].(bool); !checked {
 		return false, "missing authz evidence"
@@ -254,13 +294,22 @@ func authorizeFromEvidence(args map[string]any) (bool, string) {
 	return true, "authz allowed"
 }
 
+func boolValue(args map[string]any, key string) bool {
+	value, _ := args[key].(bool)
+	return value
+}
+
 func stringValue(args map[string]any, key string) string {
 	value, _ := args[key].(string)
 	return value
 }
 
 func mapValue(args map[string]any, key string) map[string]any {
-	switch value := args[key].(type) {
+	return stringMapValue(args[key])
+}
+
+func stringMapValue(value any) map[string]any {
+	switch value := value.(type) {
 	case map[string]any:
 		return value
 	case map[any]any:

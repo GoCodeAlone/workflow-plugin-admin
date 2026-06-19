@@ -72,6 +72,77 @@ func TestContributionRegistryFiltersByGrantedPermissions(t *testing.T) {
 	}
 }
 
+func TestContributionRegistryFiltersByTrustedContext(t *testing.T) {
+	reg := newContributionRegistry()
+	if err := reg.register(&contracts.AdminContribution{
+		Id:    "cms.site",
+		Title: "Site Manager",
+		Path:  "/admin/sites",
+		Permissions: []*contracts.AdminPermission{
+			{Permission: "admin:cms.site:read"},
+		},
+		ContextSelector: &contracts.AdminContextSelector{
+			SelectedContextKey: "site",
+			AllowedContextKinds: []string{
+				"site",
+				"tenant",
+			},
+			LaunchUrl: "/admin/sites/launch",
+			SwitchPermissions: []*contracts.AdminPermission{
+				{Permission: "admin:cms.site:switch", Resource: "cms.site", Action: "switch"},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("register cms.site: %v", err)
+	}
+	if err := reg.register(&contracts.AdminContribution{
+		Id:    "status",
+		Title: "Status",
+		Path:  "/admin/status",
+	}); err != nil {
+		t.Fatalf("register status: %v", err)
+	}
+
+	untrusted := reg.listForRequest(contributionListRequest{
+		SelectedContextKind: "site",
+		SelectedContextID:   "blackorchid",
+		GrantedPermissions:  []string{"admin:cms.site:read", "admin:cms.site:switch"},
+	})
+	if len(untrusted) != 1 || untrusted[0].Id != "status" {
+		t.Fatalf("untrusted context list = %#v, want only status", untrusted)
+	}
+
+	wrongKind := reg.listForRequest(contributionListRequest{
+		SelectedContextKind: "account",
+		SelectedContextID:   "blackorchid",
+		ContextAuthorized:   true,
+		GrantedPermissions:  []string{"admin:cms.site:read", "admin:cms.site:switch"},
+	})
+	if len(wrongKind) != 1 || wrongKind[0].Id != "status" {
+		t.Fatalf("wrong-kind context list = %#v, want only status", wrongKind)
+	}
+
+	missingSwitchGrant := reg.listForRequest(contributionListRequest{
+		SelectedContextKind: "site",
+		SelectedContextID:   "blackorchid",
+		ContextAuthorized:   true,
+		GrantedPermissions:  []string{"admin:cms.site:read"},
+	})
+	if len(missingSwitchGrant) != 1 || missingSwitchGrant[0].Id != "status" {
+		t.Fatalf("missing switch grant list = %#v, want only status", missingSwitchGrant)
+	}
+
+	authorized := reg.listForRequest(contributionListRequest{
+		SelectedContextKind: "site",
+		SelectedContextID:   "blackorchid",
+		ContextAuthorized:   true,
+		GrantedPermissions:  []string{"admin:cms.site:read", "admin:cms.site:switch"},
+	})
+	if len(authorized) != 2 || authorized[0].Id != "cms.site" || authorized[1].Id != "status" {
+		t.Fatalf("authorized context list = %#v, want cms.site and status", authorized)
+	}
+}
+
 func TestDashboardModuleServiceInvoker(t *testing.T) {
 	module := newDashboardModule("admin", &contracts.AdminDashboardConfig{
 		RoutePrefix: "/admin",
@@ -131,6 +202,55 @@ func TestDashboardModuleServiceInvoker(t *testing.T) {
 	}
 	if metadata["validate_path"] != "/api/admin/orders/config/validate" {
 		t.Fatalf("metadata validate_path = %v", metadata["validate_path"])
+	}
+}
+
+func TestDashboardModuleListsContextSelectorMetadata(t *testing.T) {
+	module := newDashboardModule("admin", &contracts.AdminDashboardConfig{})
+	invoker := any(module).(sdk.ServiceInvoker)
+
+	if _, err := invoker.InvokeMethod("RegisterContribution", map[string]any{
+		"id":    "cms.site",
+		"title": "Site Manager",
+		"path":  "/admin/sites",
+		"permissions": []any{
+			map[any]any{"permission": "admin:cms.site:read"},
+		},
+		"context_selector": map[any]any{
+			"selected_context_key": "site",
+			"allowed_context_kinds": []any{
+				"site",
+			},
+			"launch_url": "/admin/sites/launch",
+			"switch_permissions": []any{
+				map[any]any{"permission": "admin:cms.site:switch"},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("RegisterContribution: %v", err)
+	}
+
+	listed, err := invoker.InvokeMethod("ListContributions", map[string]any{
+		"selected_context_kind": "site",
+		"selected_context_id":   "blackorchid",
+		"context_authorized":    true,
+		"granted_permissions":   []any{"admin:cms.site:read", "admin:cms.site:switch"},
+	})
+	if err != nil {
+		t.Fatalf("ListContributions: %v", err)
+	}
+	contributions := listed["contributions"].([]any)
+	first := contributions[0].(map[string]any)
+	selector, ok := first["context_selector"].(map[string]any)
+	if !ok {
+		t.Fatalf("context_selector type = %T, want map", first["context_selector"])
+	}
+	if selector["selected_context_key"] != "site" || selector["launch_url"] != "/admin/sites/launch" {
+		t.Fatalf("unexpected selector metadata: %#v", selector)
+	}
+	kinds := selector["allowed_context_kinds"].([]any)
+	if len(kinds) != 1 || kinds[0] != "site" {
+		t.Fatalf("allowed_context_kinds = %#v, want [site]", kinds)
 	}
 }
 

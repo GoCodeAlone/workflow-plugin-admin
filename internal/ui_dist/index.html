@@ -522,7 +522,7 @@
       table.className = 'table';
       const head = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['Title', 'Path', 'Mode', 'Category'].forEach(label => appendTableCell(headRow, 'th', label));
+      ['Title', 'Path', 'Mode', 'Category', 'Context'].forEach(label => appendTableCell(headRow, 'th', label));
       head.appendChild(headRow);
       table.appendChild(head);
       const body = document.createElement('tbody');
@@ -532,6 +532,7 @@
         appendTableCell(row, 'td', surface.path || '');
         appendTableCell(row, 'td', surface.render_mode || 'internal');
         appendTableCell(row, 'td', surface.category || 'plugin');
+        appendTableCell(row, 'td', formatContextSelector(surface.context_selector));
         body.appendChild(row);
       });
       table.appendChild(body);
@@ -546,6 +547,15 @@
       cell.appendChild(document.createTextNode(String(value)));
       row.appendChild(cell);
       return cell;
+    }
+
+    function formatContextSelector(selector) {
+      if (!selector || typeof selector !== 'object') return '';
+      const key = selector.selected_context_key || 'context';
+      const kinds = Array.isArray(selector.allowed_context_kinds)
+        ? selector.allowed_context_kinds.filter(value => typeof value === 'string' && value)
+        : [];
+      return kinds.length ? `${key}: ${kinds.join(', ')}` : key;
     }
 
     function resolveAdminEndpoint(path) {
