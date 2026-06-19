@@ -120,3 +120,21 @@ The install target copies the plugin binary, `plugin.json`,
 `internal/ui_dist/index.html` contains the embedded admin shell. It fetches
 contributions from `/api/admin/contributions` by default; compose that endpoint
 with Workflow routes/pipelines backed by admin steps and auth/authz checks.
+
+Go hosts that embed the admin shell directly should use the public `adminui`
+package instead of copying the shell HTML or extracting assets to the working
+directory. `adminui.Handler` and `adminui.ShellHTML` keep the shell owned by
+this plugin while letting the host own authentication, authorization, and route
+mounting:
+
+```go
+adminui.Handler(adminui.ShellOptions{
+	AuthMode:              adminui.AuthModeSession,
+	ContributionsEndpoint: "/api/admin/contributions",
+	LoginEndpoint:         "/login",
+})
+```
+
+Use `AuthModeSession` when the host authenticates admin APIs with same-origin
+cookies. The default bearer-token mode preserves the standalone plugin shell
+behavior.

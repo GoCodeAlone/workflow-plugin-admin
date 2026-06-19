@@ -366,6 +366,7 @@
     const surfaceCount = document.getElementById('surface-count');
     const categoryCount = document.getElementById('category-count');
     const activeSurface = document.getElementById('active-surface');
+    const requiresBearerToken = shell.dataset.authMode !== 'session';
     const tokenStorageKey = shell.dataset.tokenStorageKey || 'workflow.admin.token';
     const adminToolFrames = new WeakMap();
     let currentGrantedScopes = [];
@@ -816,7 +817,7 @@
     }
 
     async function loadAdminTools() {
-      if (!storedToken()) {
+      if (requiresBearerToken && !storedToken()) {
         showLogin();
         return;
       }
@@ -824,6 +825,10 @@
       try {
         const response = await fetch(shell.dataset.contributionsEndpoint, { headers: authHeaders({ accept: 'application/json' }) });
         if (response.status === 401 || response.status === 403) {
+          if (!requiresBearerToken) {
+            location.href = shell.dataset.loginEndpoint || '/login';
+            return;
+          }
           showLogin('Your session is not authorized for this admin.');
           return;
         }
