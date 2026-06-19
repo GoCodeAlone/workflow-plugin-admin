@@ -29,6 +29,8 @@ func TestEmbeddedAdminShell(t *testing.T) {
 		`apply_path`,
 		`Apply changes`,
 		`resolveAdminEndpoint`,
+		`startsWith('/api/admin/')`,
+		`startsWith('/api/v1/admin/')`,
 		`same-origin`,
 		`must not include credentials`,
 		`response.ok`,
