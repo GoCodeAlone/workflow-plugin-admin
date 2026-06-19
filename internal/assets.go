@@ -14,6 +14,11 @@ var configData []byte
 //go:embed all:ui_dist
 var embeddedUIFS embed.FS
 
+// ReadEmbeddedUIAsset returns an embedded admin UI asset by path.
+func ReadEmbeddedUIAsset(path string) ([]byte, error) {
+	return embeddedUIFS.ReadFile(path)
+}
+
 // extractAssets extracts embedded UI assets to the working directory
 // if they don't already exist there.
 func extractAssets() error {
