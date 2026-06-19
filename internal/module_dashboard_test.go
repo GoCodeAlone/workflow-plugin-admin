@@ -214,16 +214,16 @@ func TestDashboardModuleListsContextSelectorMetadata(t *testing.T) {
 		"title": "Site Manager",
 		"path":  "/admin/sites",
 		"permissions": []any{
-			map[string]any{"permission": "admin:cms.site:read"},
+			map[any]any{"permission": "admin:cms.site:read"},
 		},
-		"context_selector": map[string]any{
+		"context_selector": map[any]any{
 			"selected_context_key": "site",
 			"allowed_context_kinds": []any{
 				"site",
 			},
 			"launch_url": "/admin/sites/launch",
 			"switch_permissions": []any{
-				map[string]any{"permission": "admin:cms.site:switch"},
+				map[any]any{"permission": "admin:cms.site:switch"},
 			},
 		},
 	}); err != nil {

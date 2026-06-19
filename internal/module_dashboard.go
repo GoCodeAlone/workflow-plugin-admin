@@ -232,6 +232,13 @@ func permissionValues(value any) []*contracts.AdminPermission {
 					Resource:   stringValue(permission, "resource"),
 					Action:     stringValue(permission, "action"),
 				})
+			case map[any]any:
+				permissionMap := stringMapValue(permission)
+				out = append(out, &contracts.AdminPermission{
+					Permission: stringValue(permissionMap, "permission"),
+					Resource:   stringValue(permissionMap, "resource"),
+					Action:     stringValue(permissionMap, "action"),
+				})
 			}
 		}
 		return out
@@ -253,8 +260,8 @@ func permissionMaps(permissions []*contracts.AdminPermission) []any {
 }
 
 func contextSelectorValue(value any) *contracts.AdminContextSelector {
-	selectorMap, ok := value.(map[string]any)
-	if !ok {
+	selectorMap := stringMapValue(value)
+	if selectorMap == nil {
 		return nil
 	}
 	return &contracts.AdminContextSelector{
@@ -298,7 +305,11 @@ func stringValue(args map[string]any, key string) string {
 }
 
 func mapValue(args map[string]any, key string) map[string]any {
-	switch value := args[key].(type) {
+	return stringMapValue(args[key])
+}
+
+func stringMapValue(value any) map[string]any {
+	switch value := value.(type) {
 	case map[string]any:
 		return value
 	case map[any]any:

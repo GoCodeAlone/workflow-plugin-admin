@@ -159,3 +159,51 @@ func TestTypedAdminStepsUseCurrentFallbackForWorkflowInputs(t *testing.T) {
 		t.Fatalf("unexpected typed list output: %#v", listResult.Output.GetContributions())
 	}
 }
+
+func TestTypedListContributionsCarriesTrustedContextEvidence(t *testing.T) {
+	module := newDashboardModule("admin", &contracts.AdminDashboardConfig{})
+	registerDashboardModule(module)
+
+	registerResult, err := typedRegisterContribution(context.Background(), sdk.TypedStepRequest[*contracts.AdminStepConfig, *contracts.RegisterContributionInput]{
+		Config: &contracts.AdminStepConfig{Module: "admin"},
+		Input: &contracts.RegisterContributionInput{
+			Contribution: &contracts.AdminContribution{
+				Id:    "cms-site",
+				Title: "CMS Site",
+				Path:  "/admin/sites",
+				Permissions: []*contracts.AdminPermission{
+					{Permission: "admin:cms.site:read"},
+				},
+				ContextSelector: &contracts.AdminContextSelector{
+					SelectedContextKey:  "site",
+					AllowedContextKinds: []string{"site"},
+					SwitchPermissions: []*contracts.AdminPermission{
+						{Permission: "admin:cms.site:switch"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("typedRegisterContribution: %v", err)
+	}
+	if !registerResult.Output.GetRegistered() {
+		t.Fatal("typed register did not report registered")
+	}
+
+	listResult, err := typedListContributions(context.Background(), sdk.TypedStepRequest[*contracts.AdminStepConfig, *contracts.ListContributionsInput]{
+		Config: &contracts.AdminStepConfig{Module: "admin"},
+		Input: &contracts.ListContributionsInput{
+			SelectedContextKind: "site",
+			SelectedContextId:   "blackorchid",
+			ContextAuthorized:   true,
+			GrantedPermissions:  []string{"admin:cms.site:read", "admin:cms.site:switch"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("typedListContributions: %v", err)
+	}
+	if len(listResult.Output.GetContributions()) != 1 || listResult.Output.GetContributions()[0].GetId() != "cms-site" {
+		t.Fatalf("unexpected typed context list output: %#v", listResult.Output.GetContributions())
+	}
+}
