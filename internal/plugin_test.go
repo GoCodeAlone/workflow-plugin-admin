@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"strings"
 	"testing"
 
 	sdk "github.com/GoCodeAlone/workflow/plugin/external/sdk"
@@ -47,6 +48,30 @@ func TestAdminPlugin_ConfigFragment(t *testing.T) {
 	}
 	if len(data) == 0 {
 		t.Error("expected non-empty config fragment")
+	}
+}
+
+func TestAdminPlugin_ConfigFragmentDoesNotAdvertiseLegacyPermissionStubs(t *testing.T) {
+	plugin := NewAdminPlugin()
+
+	cp, ok := plugin.(sdk.ConfigProvider)
+	if !ok {
+		t.Fatal("plugin does not implement ConfigProvider")
+	}
+
+	data, err := cp.ConfigFragment()
+	if err != nil {
+		t.Fatalf("ConfigFragment() error = %v", err)
+	}
+	config := string(data)
+
+	for _, forbidden := range []string{
+		"/api/v1/admin/workflows/{id}/permissions",
+		"permission management not yet implemented",
+	} {
+		if strings.Contains(config, forbidden) {
+			t.Fatalf("config fragment contains stale permission stub %q", forbidden)
+		}
 	}
 }
 

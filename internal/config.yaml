@@ -1534,34 +1534,6 @@ workflows:
                 service: admin-v1-mgmt
 
       # ============================================================
-      # V1 API: PERMISSIONS (Phase C: stub until memberships wired)
-      # ============================================================
-
-      - method: GET
-        path: "/api/v1/admin/workflows/{id}/permissions"
-        handler: admin-queries
-        middlewares: [admin-cors, admin-auth-middleware]
-        pipeline:
-          steps:
-            - name: respond
-              type: step.json_response
-              config:
-                status: 200
-                body: []
-      - method: POST
-        path: "/api/v1/admin/workflows/{id}/permissions"
-        handler: admin-commands
-        middlewares: [admin-cors, admin-auth-middleware]
-        pipeline:
-          steps:
-            - name: respond
-              type: step.json_response
-              config:
-                status: 501
-                body:
-                  error: "permission management not yet implemented"
-
-      # ============================================================
       # V1 API: AUDIT (Phase C: decomposed with new table)
       # ============================================================
 
