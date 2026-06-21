@@ -138,3 +138,34 @@ adminui.Handler(adminui.ShellOptions{
 Use `AuthModeSession` when the host authenticates admin APIs with same-origin
 cookies. The default bearer-token mode preserves the standalone plugin shell
 behavior.
+
+## Host Conformance
+
+Hosts that mount the admin shell and plugin-contributed admin surfaces should
+use the public `adminconformance` package in launched-host or in-process tests.
+The helper verifies that the admin contribution endpoint is authenticated,
+expected contributions are listed, shell/content routes respond, and
+runtime-integrated contributions declare and serve their backing API routes.
+
+```go
+result := adminconformance.Check(adminconformance.Options{
+	Handler:              hostHandler,
+	AuthenticatedHeaders: map[string]string{"Authorization": "Bearer test-admin"},
+	ExpectedContributions: []adminconformance.ExpectedContribution{
+		{
+			ID:                "authz",
+			Path:              "/admin/authz",
+			RuntimeIntegrated: true,
+			BackingRoutes: []adminconformance.RouteProbe{
+				{Name: "authz roles", Method: http.MethodGet, Path: "/api/admin/authz/roles", ExpectedStatus: http.StatusOK, RequireBody: true},
+			},
+		},
+	},
+	UnauthenticatedProbes: []adminconformance.RouteProbe{
+		{Name: "contributions auth gate", Path: "/api/admin/contributions", ExpectedStatus: http.StatusUnauthorized},
+	},
+})
+if !result.Pass {
+	t.Fatalf("admin conformance failed: %#v", result.Failures)
+}
+```
