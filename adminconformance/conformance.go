@@ -12,6 +12,7 @@ import (
 )
 
 const defaultContributionsPath = "/api/admin/contributions"
+const maxProbeResponseBodyBytes = 1 << 20
 
 // Options configures an admin conformance check. Supply either Handler for
 // in-process checks or BaseURL for launched-host checks.
@@ -32,10 +33,10 @@ type Options struct {
 // ExpectedContribution describes an admin surface the host expects the admin
 // registry endpoint to expose.
 type ExpectedContribution struct {
-	ID                string
-	Title             string
-	Path              string
-	RenderMode        string
+	ID                string `json:"id"`
+	Title             string `json:"title,omitempty"`
+	Path              string `json:"path,omitempty"`
+	RenderMode        string `json:"render_mode,omitempty"`
 	RuntimeIntegrated bool
 	BackingRoutes     []RouteProbe
 }
@@ -69,7 +70,7 @@ func Check(options Options) Result {
 		return result
 	}
 
-	contributions := checkContributions(&result, options)
+	checkContributions(&result, options)
 	for _, probe := range options.RouteProbes {
 		checkRoute(&result, options, probe, options.AuthenticatedHeaders, "")
 	}
@@ -85,7 +86,6 @@ func Check(options Options) Result {
 			checkRoute(&result, options, probe, options.AuthenticatedHeaders, expected.ID)
 		}
 	}
-	_ = contributions
 	return result
 }
 
@@ -182,12 +182,16 @@ func doRequest(result *Result, options Options, probe RouteProbe, headers map[st
 			return nil
 		}
 	}
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxProbeResponseBodyBytes+1))
 	if err != nil {
 		result.fail("%s: read body: %v", probeLabel(probe, contributionID), err)
 		return response
 	}
 	response.Body.Close()
+	if len(body) > maxProbeResponseBodyBytes {
+		result.fail("%s: response body exceeds %d bytes", probeLabel(probe, contributionID), maxProbeResponseBodyBytes)
+		body = body[:maxProbeResponseBodyBytes]
+	}
 	response.Body = io.NopCloser(strings.NewReader(string(body)))
 
 	if response.StatusCode != probe.ExpectedStatus {
@@ -200,9 +204,6 @@ func doRequest(result *Result, options Options, probe RouteProbe, headers map[st
 }
 
 func normalizeProbe(probe RouteProbe) RouteProbe {
-	if strings.TrimSpace(probe.Name) == "" {
-		probe.Name = probe.Method + " " + probe.Path
-	}
 	if strings.TrimSpace(probe.Method) == "" {
 		probe.Method = http.MethodGet
 	}
@@ -211,6 +212,9 @@ func normalizeProbe(probe RouteProbe) RouteProbe {
 	}
 	if !strings.HasPrefix(probe.Path, "/") {
 		probe.Path = "/" + strings.TrimLeft(probe.Path, "/")
+	}
+	if strings.TrimSpace(probe.Name) == "" {
+		probe.Name = probe.Method + " " + probe.Path
 	}
 	return probe
 }
