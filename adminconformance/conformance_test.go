@@ -18,6 +18,7 @@ func TestCheckConformancePassesForMountedAdminSurface(t *testing.T) {
 			{
 				ID:                "authz",
 				Path:              "/admin/authz",
+				RenderMode:        "iframe",
 				RuntimeIntegrated: true,
 				BackingRoutes: []RouteProbe{
 					{Name: "authz roles api", Method: http.MethodGet, Path: "/api/admin/authz/roles", ExpectedStatus: http.StatusOK, RequireBody: true},
@@ -34,6 +35,36 @@ func TestCheckConformancePassesForMountedAdminSurface(t *testing.T) {
 
 	if !result.Pass {
 		t.Fatalf("conformance failed: %#v", result.Failures)
+	}
+}
+
+func TestCheckConformanceValidatesSnakeCaseContributionFields(t *testing.T) {
+	handler := testAdminHandler(t, true)
+
+	result := Check(Options{
+		Handler:              handler,
+		AuthenticatedHeaders: map[string]string{"Authorization": "Bearer admin"},
+		ExpectedContributions: []ExpectedContribution{
+			{ID: "authz", RenderMode: "internal"},
+		},
+	})
+
+	if result.Pass {
+		t.Fatal("conformance passed with wrong render_mode expectation")
+	}
+	if !strings.Contains(strings.Join(result.Failures, "\n"), `render_mode = "iframe", want "internal"`) {
+		t.Fatalf("failure did not include decoded render_mode: %#v", result.Failures)
+	}
+}
+
+func TestNormalizeProbeDefaultsMethodBeforeName(t *testing.T) {
+	probe := normalizeProbe(RouteProbe{Path: "/api/admin/contributions"})
+
+	if probe.Method != http.MethodGet {
+		t.Fatalf("method = %q, want GET", probe.Method)
+	}
+	if probe.Name != "GET /api/admin/contributions" {
+		t.Fatalf("name = %q, want normalized method/path", probe.Name)
 	}
 }
 
