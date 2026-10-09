@@ -18,6 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Test shell session credential isolation
+        run: node --test test/*.test.cjs
+
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26'
