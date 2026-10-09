@@ -372,6 +372,7 @@
     let currentGrantedScopes = [];
 
     function storedToken() {
+      if (!requiresBearerToken) return '';
       try {
         return window.localStorage.getItem(tokenStorageKey) || '';
       } catch (_) {
@@ -380,6 +381,7 @@
     }
 
     function storeToken(token) {
+      if (!requiresBearerToken) return;
       try {
         window.localStorage.setItem(tokenStorageKey, token);
       } catch (_) {
@@ -388,6 +390,7 @@
     }
 
     function clearToken() {
+      if (!requiresBearerToken) return;
       try {
         window.localStorage.removeItem(tokenStorageKey);
       } catch (_) {

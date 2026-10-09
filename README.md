@@ -138,6 +138,9 @@ adminui.Handler(adminui.ShellOptions{
 Use `AuthModeSession` when the host authenticates admin APIs with same-origin
 cookies. The default bearer-token mode preserves the standalone plugin shell
 behavior.
+Session mode ignores stored bearer tokens and does not forward them to APIs or
+embedded tools, or change bearer-token storage. The host must authenticate and
+authorize the shell, each contributed tool, and every API request.
 
 ## Host Conformance
 
