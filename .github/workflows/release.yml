@@ -26,23 +26,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build admin UI
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+      # This plugin owns the vanilla contribution/session shell. The Workflow
+      # application's independently built UI is not a replacement for it.
+      - name: Verify the exact tagged admin shell
         run: |
-          git clone --depth 1 https://github.com/GoCodeAlone/workflow.git /tmp/workflow-ui-build
-          # Write .npmrc so npm ci can authenticate to GitHub Packages
-          # (fetch of @gocodealone/workflow-ui from npm.pkg.github.com).
-          # Captured failure in workflow-plugin-admin#13 v1.0.1 release run.
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > /tmp/workflow-ui-build/ui/.npmrc
-          # Subshell isolates `cd` so the cp below runs from the repo workspace,
-          # not /tmp/workflow-ui-build/ui. v1.0.2 release run surfaced this:
-          # cd persisted across bash lines → cp tried to write
-          # /tmp/workflow-ui-build/ui/internal/ui_dist (no such dir) instead of
-          # ${GITHUB_WORKSPACE}/internal/ui_dist.
-          ( cd /tmp/workflow-ui-build/ui && npm ci && npx vite build )
-          rm -rf internal/ui_dist && cp -r /tmp/workflow-ui-build/ui/dist internal/ui_dist
-          rm -rf /tmp/workflow-ui-build
+          node --test test/shell-session.test.cjs
+          git diff --exit-code HEAD -- internal/ui_dist
 
       - uses: actions/setup-go@v6
         with:
@@ -51,6 +40,9 @@ jobs:
 
       - name: Configure git for private modules
         run: git config --global url."https://${{ secrets.RELEASES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Verify embedded shell contract
+        run: go test ./adminui ./internal -count=1
 
       - name: Install wfctl v0.80.25
         run: |
@@ -64,15 +56,7 @@ jobs:
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: '~> v2'
-          # --skip=validate bypasses goreleaser's git-dirty-state check.
-          # The Build admin UI step rebuilds internal/ui_dist/ from workflow
-          # repo HEAD, which may differ from this repo's committed snapshot
-          # (kept in-tree for go:embed at dev time). Per workflow-plugin-admin
-          # #13 v1.0.3 release run failure, dirty check fired on
-          # internal/ui_dist/index.html. The fresh build is the intended
-          # release artifact; skip-validate accepts that ui_dist drift is
-          # expected at release time.
-          args: release --clean --skip=validate
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           GOPRIVATE: github.com/GoCodeAlone/*
