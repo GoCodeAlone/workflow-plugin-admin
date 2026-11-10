@@ -38,9 +38,10 @@ async function main() {
     return res.end(req.url === '/login-fixture' ? html : html.replace('data-admin-shell-version="1"', 'data-admin-shell-version="1" data-auth-mode="session"'));
   });
   await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
-  const origin = 'http://127.0.0.1:' + server.address().port;
-  const browser = await chromium.launch({ headless:true, ...(process.env.CMS_BROWSER_CHANNEL ? { channel:process.env.CMS_BROWSER_CHANNEL } : {}) });
+  let browser;
   try {
+    const origin = 'http://127.0.0.1:' + server.address().port;
+    browser = await chromium.launch({ headless:true, ...(process.env.CMS_BROWSER_CHANNEL ? { channel:process.env.CMS_BROWSER_CHANNEL } : {}) });
     const context = await browser.newContext({ viewport:{ width:1440,height:1100 }, serviceWorkers:'block' });
     await context.route('**/*',route => { if(new URL(route.request().url()).origin !== origin) { external.push(route.request().url()); return route.abort(); } return route.continue(); });
     const page = await context.newPage(); page.setDefaultTimeout(10000); page.on('pageerror',e=>errors.push(e.message));
@@ -76,6 +77,12 @@ async function main() {
     assert.deepEqual(external,[]);assert.deepEqual(errors,[]);
     const result={pass:true,measureOnly,browser:browser.version(),boundary:'actual upstream shell; synthetic loopback APIs; session-mode injection confined to fixture; no live auth/config writes',measurements,checks:['configuration and login desktop/tablet/375px/320px geometry','long labels/options/help/server errors',...(measureOnly?[]:['accessible control descriptions','synthetic validate/apply and secret clearing','disabled state retained','session bearer isolation','native required/email validation and login error'])]};
     if(artifacts)fs.writeFileSync(path.join(artifacts,'results.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
-  } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}
+  } finally {
+    try {
+      if (browser) await browser.close();
+    } finally {
+      await new Promise(resolve=>server.close(resolve));
+    }
+  }
 }
 main().catch(e=>{console.error(e);process.exitCode=1});
