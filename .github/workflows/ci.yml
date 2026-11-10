@@ -12,11 +12,49 @@ env:
   GOPRIVATE: github.com/GoCodeAlone/*
 
 jobs:
+  forms:
+    name: Shared forms browser QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact tested source
+        env:
+          EXPECTED_TEST_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_TEST_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/admin-ui" --no-audit --no-fund --save-exact playwright@1.61.1
+          "$RUNNER_TEMP/admin-ui/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Exercise actual configuration and login forms
+        env:
+          CMS_PLAYWRIGHT_MODULE: ${{ runner.temp }}/admin-ui/package.json
+          CMS_UI_ARTIFACTS: ${{ runner.temp }}/admin-form-results
+        run: node test/form-usability-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-form-browser-results
+          path: ${{ runner.temp }}/admin-form-results
+          retention-days: 7
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact tested source
+        env:
+          EXPECTED_TEST_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_TEST_SHA"
 
       - uses: actions/setup-node@v4
         with:
@@ -63,6 +101,12 @@ jobs:
             goarch: arm64
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact tested source
+        env:
+          EXPECTED_TEST_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_TEST_SHA"
 
       - uses: actions/setup-go@v5
         with:

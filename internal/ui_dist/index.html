@@ -12,11 +12,16 @@
       --ink: #18202f;
       --muted: #647086;
       --line: #d9dee8;
+      --control-border: #768697;
       --accent: #0f766e;
       --accent-ink: #ffffff;
       --warn: #9a3412;
     }
     * { box-sizing: border-box; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid #2563b8;
+      outline-offset: 3px;
+    }
     body {
       margin: 0;
       min-height: 100vh;
@@ -181,6 +186,7 @@
       gap: 16px;
     }
     .config-group {
+      min-width: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 14px;
@@ -197,12 +203,14 @@
     }
     .config-controls {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
       gap: 12px;
     }
     .config-control {
       display: grid;
+      min-width: 0;
       gap: 6px;
+      overflow-wrap: anywhere;
     }
     .config-control label {
       color: var(--ink);
@@ -216,8 +224,9 @@
     .config-control input,
     .config-control select {
       width: 100%;
-      min-height: 38px;
-      border: 1px solid var(--line);
+      min-width: 0;
+      min-height: 44px;
+      border: 1px solid var(--control-border);
       border-radius: 6px;
       padding: 8px 10px;
       color: var(--ink);
@@ -230,11 +239,14 @@
       justify-self: start;
     }
     .config-result {
+      min-width: 0;
+      max-width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
       background: #f8fafc;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       color: var(--muted);
     }
@@ -254,8 +266,9 @@
     }
     .field input {
       width: 100%;
-      min-height: 40px;
-      border: 1px solid var(--line);
+      min-width: 0;
+      min-height: 44px;
+      border: 1px solid var(--control-border);
       border-radius: 6px;
       padding: 8px 10px;
       color: var(--ink);
@@ -264,7 +277,7 @@
     }
     .primary-button,
     .secondary-button {
-      min-height: 36px;
+      min-height: 44px;
       border-radius: 6px;
       padding: 8px 12px;
       font: inherit;
@@ -292,6 +305,7 @@
       aside { position: static; }
       .grid { grid-template-columns: 1fr; }
       header { align-items: flex-start; flex-direction: column; }
+      .field input, .config-control input, .config-control select { font-size: 16px; }
     }
   </style>
 </head>
@@ -328,7 +342,7 @@
           </div>
           <div class="button-row">
             <button class="primary-button" type="submit">Sign in</button>
-            <span id="login-error" class="warn hidden"></span>
+            <span id="login-error" class="warn hidden" role="alert"></span>
           </div>
         </form>
       </section>
@@ -699,7 +713,12 @@
           wrapper.appendChild(input);
 
           const help = document.createElement('small');
-          help.appendChild(document.createTextNode(control.disabled_reason || control.help_text || control.description || ''));
+          const helpText = control.disabled_reason || control.help_text || control.description || '';
+          help.appendChild(document.createTextNode(helpText));
+          if (helpText) {
+            help.id = `${id}-help`;
+            input.setAttribute('aria-describedby', help.id);
+          }
           wrapper.appendChild(help);
           controls.appendChild(wrapper);
         });
@@ -762,6 +781,8 @@
 
       const result = document.createElement('pre');
       result.className = 'config-result';
+      result.setAttribute('role', 'status');
+      result.setAttribute('aria-live', 'polite');
       result.textContent = 'Loaded from plugin configuration contract.';
       form.appendChild(result);
 
